@@ -1,0 +1,35 @@
+- id: "solaredge_batterie_bei_fast_laden_sperren"
+  alias: "SolarEdge Batterie bei FAST-Laden sperren"
+  description: "Sperrt die Entladung der SolarEdge-Batterie bei FAST-Laden der Wallboxen, sendet eine Benachrichtigung und gibt sie danach wieder frei."
+  trigger:
+    - platform: state
+      entity_id:
+        - select.myenergi_zappi_charge_mode
+        - select.myenergi_zappi_18072109_charge_mode
+  action:
+    - if:
+        - condition: or
+          conditions:
+            - condition: state
+              entity_id: select.myenergi_zappi_charge_mode
+              state:
+                - "Fast"
+                - "FAST"
+            - condition: state
+              entity_id: select.myenergi_zappi_18072109_charge_mode
+              state:
+                - "Fast"
+                - "FAST"
+      then:
+        - action: script.batterie_entladung_sperren
+        - action: notify.notify
+          data:
+            title: "🔋 SolarEdge Batterie gesperrt"
+            message: "Mindestens eine Wallbox lädt im FAST-Modus. Die Entladung der Batterie wurde automatisch deaktiviert."
+      else:
+        - action: script.batterie_entladung_freigeben
+        - action: notify.notify
+          data:
+            title: "🔋 SolarEdge Batterie freigegeben"
+            message: "Keine Wallbox lädt mehr im FAST-Modus. Die Batterie ist wieder für den Eigenverbrauch freigeschaltet."
+  mode: single

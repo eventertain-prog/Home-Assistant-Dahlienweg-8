@@ -1,0 +1,169 @@
+#####################################################
+### MQQT Sensoren anlegen
+#####################################################
+
+#AhoyDTU HM-800
+sensor:
+  #<TOPIC>/#
+  - name: "AHOY comm_start"
+    state_topic: ahoy/comm_start
+  - name: "AHOY comm_start_extended"
+    state_topic: ahoy/comm_start
+    value_template: >-
+      {{ value | int | timestamp_custom('%d.%m.%Y %H:%M:%S') }}
+  - name: "AHOY comm_stop"
+    state_topic: ahoy/comm_stop
+  - name: "AHOY comm_stop_extended"
+    state_topic: ahoy/comm_stop
+    value_template: >-
+      {{ value | int | timestamp_custom('%d.%m.%Y %H:%M:%S') }}
+  - name: "AHOY dis_night_comm"
+    state_topic: ahoy/dis_night_comm
+  - name: "AHOY mqtt"
+    state_topic: ahoy/mqtt
+  - name: "AHOY status"
+    state_topic: ahoy/status
+  - name: "AHOY status extended"
+    state_topic: ahoy/status
+    value_template: >-
+      {% if (value | int) == 0 %}
+        offline
+      {% elif (value | int) == 1 %}
+        partial
+      {% elif (value | int) == 2 %}
+        online
+      {% endif %}
+  - name: "AHOY sunrise"
+    state_topic: ahoy/sunrise
+  - name: "AHOY sunrise_extended"
+    state_topic: ahoy/sunrise
+    value_template: >-
+      {{ value | int | timestamp_custom('%d.%m.%Y %H:%M:%S') }}
+  - name: "AHOY sunset"
+    state_topic: ahoy/sunset
+  - name: "AHOY sunset_extended"
+    state_topic: ahoy/sunset
+    value_template: >-
+      {{ value | int | timestamp_custom('%d.%m.%Y %H:%M:%S') }}
+  - name: "AHOY Uptime"
+    state_topic: ahoy/uptime
+    unit_of_measurement: "s"
+  - name: "AHOY Uptime_extended"
+    state_topic: ahoy/uptime
+    value_template: >-
+      {{ value | int | timestamp_custom('%H:%M:%S', local=false) }}
+  - name: "AHOY Version"
+    state_topic: ahoy/version
+  - name: "AHOY Device"
+    state_topic: ahoy/device
+  - name: "AHOY WiFi"
+    state_topic: ahoy/wifi_rssi
+    unit_of_measurement: "dBm"
+  - name: "AHOY Gesamtertrag"
+    state_topic: ahoy/YieldTotal
+    unit_of_measurement: "kWh"
+    #<TOPIC>/<INVERTER_NAME_FROM_SETUP>/#
+  - name: "AHOY available"
+    state_topic: ahoy/HM-800/available
+  - name: "AHOY available extended"
+    state_topic: ahoy/HM-800/available
+    value_template: >-
+      {% if (value | int) == 0 %}
+        not available and not producing
+      {% elif (value | int) == 1 %}
+        available but not producing
+      {% elif (value | int) == 2 %}
+        available and producing
+      {% endif %}
+  - name: "AHOY last_success"
+    state_topic: ahoy/HM-800/last_success
+  - name: "AHOY last_success_extended"
+    state_topic: ahoy/HM-800/last_success
+    value_template: >
+      {{ value | int | timestamp_custom('%d.%m.%Y %H:%M:%S') }}
+  #Basic <TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch0/#
+  - name: "AHOY U_AC"
+    state_topic: ahoy/HM-800/ch0/U_AC
+    unit_of_measurement: "V"
+  - name: "AHOY I_AC"
+    state_topic: ahoy/HM-800/ch0/I_AC
+    unit_of_measurement: "A"
+  - name: "AHOY P_AC"
+    state_topic: ahoy/HM-800/ch0/P_AC
+    unit_of_measurement: "W"
+  - name: "AHOY Q_AC"
+    state_topic: ahoy/HM-800/ch0/Q_AC
+  - name: "AHOY F_AC"
+    state_topic: ahoy/HM-800/ch0/F_AC
+    unit_of_measurement: "Hz"
+  - name: "AHOY PF_AC"
+    state_topic: ahoy/HM-800/ch0/PF_AC
+  - name: "AHOY Temperatur"
+    state_topic: ahoy/HM-800/ch0/Temp
+    unit_of_measurement: "°C"
+  - name: "AHOY EVT"
+    state_topic: ahoy/HM-800/ch0/EVT
+  - name: "AHOY YieldDay"
+    state_topic: ahoy/HM-800/ch0/YieldDay
+    device_class: energy
+    unit_of_measurement: "kWh"
+  - name: "AHOY YieldTotal"
+    state_topic: ahoy/HM-800/ch0/YieldTotal
+    device_class: energy
+    unit_of_measurement: "kWh"
+  - name: "AHOY P_DC"
+    state_topic: ahoy/HM-800/ch0/P_DC
+    unit_of_measurement: "W"
+  - name: "AHOY Efficiency"
+    state_topic: ahoy/HM-800/ch0/Efficiency
+    unit_of_measurement: "%"
+  - name: "AHOY FWVersion"
+    state_topic: ahoy/HM-800/ch0/FWVersion
+  - name: "AHOY FWBuildYear"
+    state_topic: ahoy/HM-800/ch0/FWBuildYear
+  - name: "AHOY FWBuildMonthDay"
+    state_topic: ahoy/HM-800/ch0/FWBuildMonthDay
+  - name: "AHOY HWPartID"
+    state_topic: ahoy/HM-800/ch0/HWPartId
+  - name: "AHOY PowerLimit"
+    state_topic: ahoy/HM-800/ch0/PowerLimit
+  - name: "AHOY LastAlarmCode"
+    state_topic: ahoy/HM-800/ch0/LastAlarmCode
+  #Panel 1 - UNTEN - <TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#
+  - name: "AHOY U_DC 1"
+    state_topic: ahoy/HM-800/ch1/U_DC
+    unit_of_measurement: "V"
+  - name: "AHOY I_DC 1"
+    state_topic: ahoy/HM-800/ch1/I_DC
+    unit_of_measurement: "A"
+  - name: "AHOY P_DC 1"
+    state_topic: ahoy/HM-800/ch1/P_DC
+    unit_of_measurement: "W"
+  - name: "AHOY YieldDay 1"
+    state_topic: ahoy/HM-800/ch1/YieldDay
+    unit_of_measurement: "Wh"
+  - name: "AHOY YieldTotal 1"
+    state_topic: ahoy/HM-800/ch1/YieldTotal
+    unit_of_measurement: "kWh"
+  - name: "AHOY Irradiation 1"
+    state_topic: ahoy/HM-800/ch1/P_DC
+    unit_of_measurement: "%"
+  #Panel 2 - OBEN - <TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#
+  - name: "AHOY U_DC 2"
+    state_topic: ahoy/HM-800/ch2/U_DC
+    unit_of_measurement: "V"
+  - name: "AHOY I_DC 2"
+    state_topic: ahoy/HM-800/ch2/I_DC
+    unit_of_measurement: "A"
+  - name: "AHOY P_DC 2"
+    state_topic: ahoy/HM-800/ch2/P_DC
+    unit_of_measurement: "W"
+  - name: "AHOY YieldDay 2"
+    state_topic: ahoy/HM-800/ch2/YieldDay
+    unit_of_measurement: "Wh"
+  - name: "AHOY YieldTotal 2"
+    state_topic: ahoy/HM-800/ch2/YieldTotal
+    unit_of_measurement: "kWh"
+  - name: "AHOY Irradiation 2"
+    state_topic: ahoy/HM-800/ch2/P_DC
+    unit_of_measurement: "%"

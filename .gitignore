@@ -1,0 +1,9 @@
+*.db
+*.db-shm
+*.db-wal
+*.log
+home-assistant_v2.db
+backups/ 
+.storage/ 
+.cloud/ 
+secrets.yaml

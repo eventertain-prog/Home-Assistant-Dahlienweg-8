@@ -1,0 +1,36 @@
+sensor.solvis_remote_volume_stream_warm_water:
+  unit_of_measurement: 'l/min'
+
+sensor.solvis_remote_volume_stream_solar:
+  unit_of_measurement: 'l/h'
+
+sensor.total_grid_out:
+  last_reset: '2021-10-10T00:00:00+00:00'
+  state_class: total
+  device_class: energy
+  value_template: '{{value|round(2)}}'
+sensor.total_grid_in:
+  last_reset: '2021-10-10T00:00:00+00:00'
+  state_class: total
+  device_class: energy
+  value_template: '{{value|round(2)}}'
+sensor.total_battery_out:
+  last_reset: '2021-10-10T00:00:00+00:00'
+  state_class: total
+  device_class: energy
+  value_template: '{{value|round(2)}}'
+sensor.total_battery_in:
+  last_reset: '2021-10-10T00:00:00+00:00'
+  state_class: total
+  device_class: energy
+  value_template: '{{value|round(2)}}'
+sensor.total_house_load:
+  last_reset: '2021-10-10T00:00:00+00:00'
+  state_class: total
+  device_class: energy
+  value_template: '{{value|round(2)}}'
+sensor.total_solar:
+  last_reset: '2021-10-10T00:00:00+00:00'
+  state_class: total
+  device_class: energy
+  value_template: '{{value|round(2)}}'

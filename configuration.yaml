@@ -1,0 +1,42 @@
+default_config:
+
+frontend:
+  themes: !include_dir_merge_named themes/
+
+energy:
+
+modbus: !include modbus.yaml
+script: !include scripts.yaml
+### template: !include template.yaml
+sensor: !include sensor.yaml
+automation: !include automations.yaml
+
+template:
+  - switch:
+      #########################################################
+      # BATTERIE ENTLADUNG SPERREN
+      #########################################################
+      - name: "Batterie Entladung sperren"
+        unique_id: batterie_entladung_sperren
+        availability: >
+          {{ has_value('sensor.solaredge_battery_remote_control_mode') }}
+        state: >
+          {{ states('sensor.solaredge_battery_remote_control_mode') | int(-1) == 1 }}
+        turn_on:
+          - action: script.batterie_entladung_sperren
+        turn_off:
+          - action: script.batterie_entladung_freigeben
+
+      #########################################################
+      # BATTERIE NETZLADEN
+      #########################################################
+      - name: "Batterie Netzladen erlauben"
+        unique_id: batterie_netzladen_erlauben
+        availability: >
+          {{ has_value('sensor.solaredge_battery_remote_control_mode') }}
+        state: >
+          {{ states('sensor.solaredge_battery_remote_control_mode') | int(-1) == 3 }}
+        turn_on:
+          - action: script.batterie_netzladen_aktivieren
+        turn_off:
+          - action: script.batterie_netzladen_deaktivieren

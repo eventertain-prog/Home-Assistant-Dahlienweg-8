@@ -1,0 +1,151 @@
+###############################################################
+# BATTERIE ENTLADELEISTUNG
+###############################################################
+
+batterie_entladung_sperren:
+  alias: "Batterie Entladung sperren"
+  description: "Batterieentladung über SolarEdge Remote Control deaktivieren"
+  mode: single
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: "{{ ['switch.solaredge_battery_remote_control'] if states('switch.solaredge_battery_remote_control') not in ['unknown', 'unavailable', 'none'] else [] }}"
+
+    # Remote Control Mode 1 = Charge excess PV power only
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57357
+        value: 1
+
+    # Entlade-Limit auf 0 W setzen
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57360
+        value: >
+          {% set value = 0 | float %}
+          {% set bytes = pack(value, ">f") %}
+          {% set high_word = unpack(bytes, ">H") %}
+          {% set low_word = unpack(bytes, ">H", offset=2) %}
+          [{{ high_word }}, {{ low_word }}]
+
+batterie_entladung_freigeben:
+  alias: "Batterie Entladung freigeben"
+  description: "Batterieentladung über SolarEdge Remote Control freigeben"
+  mode: single
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.solaredge_battery_remote_control
+
+    # Mode 7 = Maximize Self Consumption
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57357
+        value: 7
+
+    # Entlade-Limit auf 5000 W setzen
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57360
+        value: >
+          {% set value = 5000 | float %}
+          {% set bytes = pack(value, ">f") %}
+          {% set high_word = unpack(bytes, ">H") %}
+          {% set low_word = unpack(bytes, ">H", offset=2) %}
+          [{{ high_word }}, {{ low_word }}]
+
+###############################################################
+# BATTERIE NETZLADEN
+###############################################################
+
+batterie_netzladen_aktivieren:
+  alias: "Batterie Netzladen aktivieren"
+  description: "Batterie über AC/Netz laden"
+  mode: single
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.solaredge_battery_remote_control
+
+    # Mode 3 = Charge from PV + AC
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57357
+        value: 3
+
+    # Maximale Ladeleistung 5000 W
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57358
+        value: >
+          {% set value = 5000 | float %}
+          {% set bytes = pack(value, ">f") %}
+          {% set high_word = unpack(bytes, ">H") %}
+          {% set low_word = unpack(bytes, ">H", offset=2) %}
+          [{{ high_word }}, {{ low_word }}]
+
+batterie_netzladen_deaktivieren:
+  alias: "Batterie Netzladen deaktivieren"
+  description: "Netzladen deaktivieren und normalen Eigenverbrauch wiederherstellen"
+  mode: single
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.solaredge_battery_remote_control
+
+    # Mode 7 = Maximize Self Consumption
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57357
+        value: 7
+
+###############################################################
+# SOLAREDGE STANDARD
+###############################################################
+
+solaredge_reset_standard:
+  alias: "SolarEdge auf Standard zurücksetzen"
+  description: "SolarEdge Batterie auf normalen Eigenverbrauch zurücksetzen"
+  mode: single
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.solaredge_battery_remote_control
+
+    # Mode 7 = Maximize Self Consumption
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57357
+        value: 7
+
+    # Entlade-Limit auf 5000 W zurücksetzen
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57360
+        value: >
+          {% set value = 5000 | float %}
+          {% set bytes = pack(value, ">f") %}
+          {% set high_word = unpack(bytes, ">H") %}
+          {% set low_word = unpack(bytes, ">H", offset=2) %}
+          [{{ high_word }}, {{ low_word }}]
+
+    # Lade-Limit auf 5000 W zurücksetzen
+    - action: modbus.write_register
+      data:
+        hub: SolarEdge
+        address: 57358
+        value: >
+          {% set value = 5000 | float %}
+          {% set bytes = pack(value, ">f") %}
+          {% set high_word = unpack(bytes, ">H") %}
+          {% set low_word = unpack(bytes, ">H", offset=2) %}
+          [{{ high_word }}, {{ low_word }}]

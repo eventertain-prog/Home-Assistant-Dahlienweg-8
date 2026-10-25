@@ -1,0 +1,349 @@
+# SolarEdge Modbus TCP Konfiguration für Home Assistant
+# Einbindung in configuration.yaml via: modbus: !include modbus.yaml
+
+- name: SolarEdge
+  type: tcp
+  host: 192.168.178.57
+  port: 502
+  delay: 1
+  timeout: 5
+  message_wait_milliseconds: 30
+  retries: 3
+  retry_on_empty: true
+  sensors:
+    #########################################################
+    # 1. SOLAREDGE WECHSELRICHTER (SUNSPEC INVERTER BLOCK)
+    #########################################################
+
+    # AC Wirkleistung Raw (L3 / Gesamt) (Momentanleistung)
+    # Register 40083 / Int16 (Benötigt Scale Factor 40084)
+    - name: Solaredge PV Power Raw
+      unique_id: solaredge_pv_power_raw
+      address: 40083
+      input_type: holding
+      data_type: int16
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      scan_interval: 15
+
+    # AC Wirkleistung Scale Factor
+    # Register 40084 / Int16
+    - name: Solaredge PV Power SF
+      unique_id: solaredge_pv_power_sf
+      address: 40084
+      input_type: holding
+      data_type: int16
+      scan_interval: 60
+
+    # Netzfrequenz Raw
+    # Register 40085 / Uint16
+    - name: Solaredge Grid Frequency Raw
+      unique_id: solaredge_grid_frequency_raw
+      address: 40085
+      input_type: holding
+      data_type: uint16
+      unit_of_measurement: "Hz"
+      device_class: frequency
+      state_class: measurement
+      scan_interval: 15
+
+    # Netzfrequenz Scale Factor
+    # Register 40086 / Int16
+    - name: Solaredge Grid Frequency SF
+      unique_id: solaredge_grid_frequency_sf
+      address: 40086
+      input_type: holding
+      data_type: int16
+      scan_interval: 60
+
+    # AC Gesamterzeugung Lifetime Raw
+    # Register 40093 / Uint32
+    - name: Solaredge AC Energy Raw
+      unique_id: solaredge_ac_energy_raw
+      address: 40093
+      input_type: holding
+      data_type: uint32
+      unit_of_measurement: "Wh"
+      device_class: energy
+      state_class: total_increasing
+      scan_interval: 30
+      swap: word
+
+    # AC Gesamterzeugung Scale Factor
+    # Register 40095 / Uint16
+    - name: Solaredge AC Energy SF
+      unique_id: solaredge_ac_energy_sf
+      address: 40095
+      input_type: holding
+      data_type: uint16
+      scan_interval: 300
+
+    # DC Strom Raw
+    # Register 40096 / Uint16
+    - name: Solaredge DC Current Raw
+      unique_id: solaredge_dc_current_raw
+      address: 40096
+      input_type: holding
+      data_type: uint16
+      unit_of_measurement: "A"
+      device_class: current
+      state_class: measurement
+      scan_interval: 15
+
+    # DC Strom Scale Factor
+    # Register 40097 / Int16
+    - name: Solaredge DC Current SF
+      unique_id: solaredge_dc_current_sf
+      address: 40097
+      input_type: holding
+      data_type: int16
+      scan_interval: 60
+
+    # DC Spannung Raw
+    # Register 40098 / Uint16
+    - name: Solaredge DC Voltage Raw
+      unique_id: solaredge_dc_voltage_raw
+      address: 40098
+      input_type: holding
+      data_type: uint16
+      unit_of_measurement: "V"
+      device_class: voltage
+      state_class: measurement
+      scan_interval: 15
+
+    # DC Spannung Scale Factor
+    # Register 40099 / Int16
+    - name: Solaredge DC Voltage SF
+      unique_id: solaredge_dc_voltage_sf
+      address: 40099
+      input_type: holding
+      data_type: int16
+      scan_interval: 60
+
+    # DC Leistung Raw
+    # Register 40100 / Int16
+    - name: Solaredge DC Power Raw
+      unique_id: solaredge_dc_power_raw
+      address: 40100
+      input_type: holding
+      data_type: int16
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      scan_interval: 15
+
+    # DC Leistung Scale Factor
+    # Register 40101 / Int16
+    - name: Solaredge DC Power SF
+      unique_id: solaredge_dc_power_sf
+      address: 40101
+      input_type: holding
+      data_type: int16
+      scan_interval: 60
+
+    # Wechselrichter Kühlkörper-Temperatur Raw
+    # Register 40103 / Int16
+    - name: Solaredge Inverter Temperature Raw
+      unique_id: solaredge_inverter_temperature_raw
+      address: 40103
+      input_type: holding
+      data_type: int16
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+      scan_interval: 30
+
+    # Wechselrichter Kühlkörper-Temperatur Scale Factor
+    # Register 40106 / Int16
+    - name: Solaredge Inverter Temperature SF
+      unique_id: solaredge_inverter_temperature_sf
+      address: 40106
+      input_type: holding
+      data_type: int16
+      scan_interval: 300
+
+    # Wechselrichter Betriebsstatus
+    # Register 40107 / Uint16 (1=Off, 2=Sleeping, 4=Producing, 5=Throttled, 7=Fault)
+    - name: Solaredge Inverter Status
+      unique_id: solaredge_inverter_status
+      address: 40107
+      input_type: holding
+      data_type: uint16
+      scan_interval: 30
+
+    #########################################################
+    # 2. SOLAREDGE ENERGIEZÄHLER (SUNSPEC METER BLOCK)
+    #########################################################
+
+    # Netzleistung Raw (Positiv = Einspeisung, Negativ = Bezug)
+    # Register 40206 / Int16 (Benötigt Scale Factor 40210)
+    - name: Solaredge Meter AC Power Raw
+      unique_id: solaredge_meter_ac_power_raw
+      address: 40206
+      input_type: holding
+      data_type: int16
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      scan_interval: 15
+
+    # Netzleistung Scale Factor
+    # Register 40210 / Int16
+    - name: Solaredge Meter AC Power SF
+      unique_id: solaredge_meter_ac_power_sf
+      address: 40210
+      input_type: holding
+      data_type: int16
+      scan_interval: 60
+
+    # Kumulierte Netzeinspeisung Raw
+    # Register 40226 / Uint32
+    - name: Solaredge Meter Exported Energy Raw
+      unique_id: solaredge_meter_exported_energy_raw
+      address: 40226
+      input_type: holding
+      data_type: uint32
+      unit_of_measurement: "Wh"
+      device_class: energy
+      state_class: total_increasing
+      scan_interval: 60
+      swap: word
+
+    # Kumulierter Netzbezug Raw
+    # Register 40234 / Uint32
+    - name: Solaredge Meter Imported Energy Raw
+      unique_id: solaredge_meter_imported_energy_raw
+      address: 40234
+      input_type: holding
+      data_type: uint32
+      unit_of_measurement: "Wh"
+      device_class: energy
+      state_class: total_increasing
+      scan_interval: 60
+      swap: word
+
+    # Zähler Energie Scale Factor
+    # Register 40242 / Int16
+    - name: Solaredge Meter Energy SF
+      unique_id: solaredge_meter_energy_sf
+      address: 40242
+      input_type: holding
+      data_type: int16
+      scan_interval: 300
+
+    #########################################################
+    # 3. SOLAREDGE BATTERIE (STOREDGE BATTERY 1)
+    #########################################################
+
+    # Batteriestrom (Positiv = Entladen, Negativ = Laden)
+    # Register 62832 / Float32, word swapped
+    - name: Solaredge Battery Current
+      unique_id: solaredge_battery_current
+      address: 62832
+      input_type: holding
+      data_type: float32
+      swap: word
+      unit_of_measurement: "A"
+      device_class: current
+      state_class: measurement
+      scan_interval: 15
+
+    # Batterieleistung (Positiv = Laden, Negativ = Entladen)
+    # Register 62836 / Float32, word swapped
+    - name: Solaredge Battery Power
+      unique_id: solaredge_battery_power
+      address: 62836
+      input_type: holding
+      data_type: float32
+      swap: word
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      scan_interval: 5
+
+    # Batterie Gesundheit (SoH)
+    # Register 62850 / Float32
+    - name: Solaredge Battery SOH
+      unique_id: solaredge_battery_soh
+      address: 62850
+      input_type: holding
+      data_type: float32
+      unit_of_measurement: "%"
+      state_class: measurement
+      scan_interval: 300
+      swap: word
+
+    # Batterie Ladestand (SoC)
+    # Register 62852 / Float32
+    - name: Solaredge Battery SOC
+      unique_id: solaredge_battery_soc
+      address: 62852
+      input_type: holding
+      data_type: float32
+      unit_of_measurement: "%"
+      device_class: battery
+      state_class: measurement
+      scan_interval: 15
+      swap: word
+
+    # Batteriestatus (0=Off, 1=Standby, 3=Charge, 4=Discharge, 7=Idle)
+    # Register 62854 / Uint32, word swapped
+    - name: Solaredge Battery Status
+      unique_id: solaredge_battery_status
+      address: 62854
+      input_type: holding
+      data_type: uint32
+      swap: word
+      scan_interval: 15
+
+    #########################################################
+    # 4. SOLAREDGE BATTERIE STEUERUNG (REMOTE CONTROL)
+    #########################################################
+
+    # Remote Control Command Timeout
+    # Register 57355 / Uint32, word swapped (Standard: 3600 s)
+    - name: Solaredge Battery Remote Control Timeout
+      unique_id: solaredge_battery_remote_control_timeout
+      address: 57355
+      input_type: holding
+      data_type: uint32
+      swap: word
+      unit_of_measurement: "s"
+      scan_interval: 30
+
+    # Remote Control Command Mode
+    # Register 57357 / Uint16 (1=Charge Excess, 3=Charge PV+AC, 4=Max Export, 7=Max Self Consumption)
+    - name: Solaredge Battery Remote Control Mode
+      unique_id: solaredge_battery_remote_control_mode
+      address: 57357
+      input_type: holding
+      data_type: uint16
+      state_class: measurement
+      scan_interval: 15
+
+    # Remote Control Charge Limit
+    # Register 57358 / Float32, word swapped
+    - name: Solaredge Battery Remote Charge Limit
+      unique_id: solaredge_battery_remote_charge_limit
+      address: 57358
+      input_type: holding
+      data_type: float32
+      swap: word
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      scan_interval: 15
+
+    # Remote Control Discharge Limit
+    # Register 57360 / Float32, word swapped
+    - name: Solaredge Battery Discharge Limit
+      unique_id: solaredge_battery_discharge_limit
+      address: 57360
+      input_type: holding
+      data_type: float32
+      swap: word
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      scan_interval: 15
