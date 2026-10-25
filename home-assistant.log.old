@@ -1,0 +1,195 @@
+2025-11-12 18:08:24.509 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration solvis_control which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.510 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration myenergi which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.511 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration tesla_custom which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.512 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration spook which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.513 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration hacs which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.513 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration powercalc which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.514 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration battery_notes which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.515 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration tibber_local which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.515 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration solaredge_modbus which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.516 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration solaredge_forecast which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.516 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration browser_mod which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.517 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration solvis_modbus which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.517 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration tibber_custom which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.518 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration solvis_heating which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:24.518 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration watchman which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2025-11-12 18:08:27.691 INFO (SyncWorker_5) [fritzconnection] Unable to retrieve resource 'http://192.168.178.112:49000/igddesc.xml' from the device.
+2025-11-12 18:08:31.547 WARNING (SyncWorker_1) [pyezvizapi.client] Camera G75917385 is offline or unreachable, retrying 0 of 3
+2025-11-12 18:08:31.613 WARNING (SyncWorker_1) [pyezvizapi.client] Camera G75917385 is offline or unreachable, retrying 1 of 3
+2025-11-12 18:08:31.667 WARNING (SyncWorker_1) [pyezvizapi.client] Camera G75917385 is offline or unreachable, retrying 2 of 3
+2025-11-12 18:08:31.728 WARNING (SyncWorker_1) [pyezvizapi.client] Camera G75917385 is offline or unreachable, retrying 3 of 3
+2025-11-12 18:08:31.731 ERROR (MainThread) [homeassistant.helpers.entity] Update for number.c6n_g75917385_erkennungsempfindlichkeit fails
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/components/ezviz/number.py", line 119, in update
+    self.sensor_value = self.coordinator.ezviz_client.get_detection_sensibility(
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._serial,
+        ^^^^^^^^^^^^^
+        str(self.sensitivity_type),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/pyezvizapi/client.py", line 2078, in get_detection_sensibility
+    return self.get_detection_sensibility(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        serial, type_value, max_retries + 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/pyezvizapi/client.py", line 2078, in get_detection_sensibility
+    return self.get_detection_sensibility(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        serial, type_value, max_retries + 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/pyezvizapi/client.py", line 2078, in get_detection_sensibility
+    return self.get_detection_sensibility(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        serial, type_value, max_retries + 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  [Previous line repeated 1 more time]
+  File "/usr/local/lib/python3.13/site-packages/pyezvizapi/client.py", line 2042, in get_detection_sensibility
+    raise PyEzvizError("Can't gather proper data. Max retries exceeded.")
+pyezvizapi.exceptions.PyEzvizError: Can't gather proper data. Max retries exceeded.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 963, in async_update_ha_state
+    await self.async_device_update()
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1316, in async_device_update
+    await hass.async_add_executor_job(self.update)
+  File "/usr/local/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/usr/src/homeassistant/homeassistant/components/ezviz/number.py", line 132, in update
+    raise HomeAssistantError(f"Invalid response from API: {error}") from error
+homeassistant.exceptions.HomeAssistantError: Invalid response from API: Can't gather proper data. Max retries exceeded.
+2025-11-12 18:08:48.809 ERROR (MainThread) [homeassistant.core] Error running job: <Job onetime listen homeassistant_start <function _async_at_core_state.<locals>._matched_event at 0x7f4b3c860220> HassJobType.Callback <_OneTimeListener homeassistant.helpers.start:<function _async_at_core_state.<locals>._matched_event at 0x7f4b3c860220>>>
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/components/sensor/__init__.py", line 684, in state
+    numerical_value = int(value)
+ValueError: invalid literal for int() with base 10: 'unknown'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/components/sensor/__init__.py", line 687, in state
+    numerical_value = float(value)
+ValueError: could not convert string to float: 'unknown'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/core.py", line 1575, in async_fire_internal
+    self._hass.async_run_hass_job(job, event)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/core.py", line 937, in async_run_hass_job
+    hassjob.target(*args)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/core.py", line 1436, in __call__
+    self.hass.async_run_hass_job(self.listener_job, event)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/core.py", line 937, in async_run_hass_job
+    hassjob.target(*args)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/helpers/start.py", line 44, in _matched_event
+    hass.async_run_hass_job(at_start_job, hass)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/core.py", line 937, in async_run_hass_job
+    hassjob.target(*args)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/components/template/template_entity.py", line 402, in _async_template_startup
+    result_info.async_refresh()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/event.py", line 1136, in async_refresh
+    self._refresh(None)
+    ~~~~~~~~~~~~~^^^^^^
+  File "/usr/src/homeassistant/homeassistant/helpers/event.py", line 1322, in _refresh
+    self.hass.async_run_hass_job(self._job, event, updates)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/core.py", line 937, in async_run_hass_job
+    hassjob.target(*args)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/components/template/template_entity.py", line 348, in _handle_results
+    self.async_write_ha_state()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1026, in async_write_ha_state
+    self._async_write_ha_state()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1151, in _async_write_ha_state
+    self.__async_calculate_state()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1088, in __async_calculate_state
+    state = self._stringify_state(available)
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1032, in _stringify_state
+    if (state := self.state) is None:
+                 ^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/components/sensor/__init__.py", line 691, in state
+    raise ValueError(
+    ...<5 lines>...
+    ) from err
+ValueError: Sensor sensor.batterie_ladezeit_verbleibend has device class 'duration', state class 'measurement' unit 'h' and suggested precision 'None' thus indicating it has a numeric value; however, it has the non-numeric value: 'unknown' (<class 'str'>)
+2025-11-12 18:08:49.562 ERROR (MainThread) [homeassistant.config_entries] Cannot find integration rtsp_to_webrtc
+2025-11-12 18:08:49.566 ERROR (MainThread) [homeassistant] Error doing job: Task exception was never retrieved (None)
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/config_entries.py", line 3842, in _load_integration
+    integration = await loader.async_get_integration(hass, domain)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/loader.py", line 1355, in async_get_integration
+    raise int_or_exc
+homeassistant.loader.IntegrationNotFound: Integration 'rtsp_to_webrtc' not found.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/helpers/discovery_flow.py", line 137, in _async_start
+    await gather_with_limited_concurrency(FLOW_INIT_LIMIT, *init_coros)
+  File "/usr/src/homeassistant/homeassistant/util/async_.py", line 113, in gather_with_limited_concurrency
+    return await gather(
+           ^^^^^^^^^^^^^
+    ...<2 lines>...
+    )
+    ^
+  File "/usr/src/homeassistant/homeassistant/util/async_.py", line 111, in sem_task
+    return await task
+           ^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/config_entries.py", line 1464, in async_init
+    flow, result = await self._async_init(flow_id, handler, context, data)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/config_entries.py", line 1500, in _async_init
+    flow = await self.async_create_flow(handler, context=context, data=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/config_entries.py", line 1722, in async_create_flow
+    handler = await _async_get_flow_handler(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.hass, handler_key, self._hass_config
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/src/homeassistant/homeassistant/config_entries.py", line 3871, in _async_get_flow_handler
+    await _load_integration(hass, domain, hass_config)
+  File "/usr/src/homeassistant/homeassistant/config_entries.py", line 3845, in _load_integration
+    raise data_entry_flow.UnknownHandler from err
+homeassistant.data_entry_flow.UnknownHandler
+2025-11-12 18:12:45.079 ERROR (MainThread) [homeassistant.helpers.dispatcher] Exception in async_write_ha_state when dispatching 'sonos_state_updated-RINCON_000E5885F47601400': ()
+Traceback (most recent call last):
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1026, in async_write_ha_state
+    self._async_write_ha_state()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1151, in _async_write_ha_state
+    self.__async_calculate_state()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1117, in __async_calculate_state
+    name := (entry and entry.name) or self._friendly_name_internal()
+                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/src/homeassistant/homeassistant/helpers/entity.py", line 1049, in _friendly_name_internal
+    name = self.name
+           ^^^^^^^^^
+  File "/usr/src/homeassistant/homeassistant/components/sonos/switch.py", line 265, in name
+    f"{self.alarm.recurrence.capitalize()} alarm"
+       ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'recurrence'
+

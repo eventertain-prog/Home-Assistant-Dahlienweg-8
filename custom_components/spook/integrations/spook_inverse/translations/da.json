@@ -1,0 +1,89 @@
+{
+    "config": {
+        "step": {
+            "switch": {
+                "data": {
+                    "name": "Navn",
+                    "hide_source": "Skjul kildeentitet",
+                    "entity_id": "Kildeentitet"
+                },
+                "title": "Invertér 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Kildeentitet",
+                    "hide_source": "Skjul kildeentitet",
+                    "name": "Navn"
+                },
+                "title": "Invertér 👻"
+            },
+            "binary_sensor": {
+                "data": {
+                    "hide_source": "Skjul kildeentitet",
+                    "name": "Navn",
+                    "entity_id": "Kildeentitet"
+                },
+                "title": "Invertér 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Kildeentitet",
+                    "hide_source": "Skjul kildeentitet",
+                    "inverse_position": "Invertér åbning, lukning og position",
+                    "inverse_tilt": "Invertér vippeposition",
+                    "name": "Navn"
+                },
+                "title": "Invertér 👻"
+            },
+            "user": {
+                "description": "Denne hjælper lader dig invertere en entitets adfærd. For eksempel vende åben/lukket eller tændt/slukket om for binære sensorer, gardiner/porte, kontakter og ventiler.",
+                "menu_options": {
+                    "binary_sensor": "Invertér en binær sensor",
+                    "cover": "Invertér et gardin/port",
+                    "switch": "Invertér en kontakt",
+                    "valve": "Invertér en ventil"
+                },
+                "title": "Invertér 👻"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Kildeentitet",
+                    "name": "Navn",
+                    "hide_source": "Skjul kildeentitet"
+                },
+                "title": "Invertér 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Kildeentitet",
+                    "hide_source": "Skjul kildeentitet",
+                    "inverse_position": "Invertér åbning, lukning og position",
+                    "inverse_tilt": "Invertér vippeposition",
+                    "name": "Navn"
+                },
+                "title": "Invertér 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Kildeentitet",
+                    "name": "Navn",
+                    "hide_source": "Skjul kildeentitet"
+                },
+                "title": "Invertér 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Kildeentitet",
+                    "hide_source": "Skjul kildeentitet",
+                    "name": "Navn"
+                },
+                "title": "Invertér 👻"
+            }
+        }
+    },
+    "title": "Invertér 👻"
+}

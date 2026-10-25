@@ -1,0 +1,89 @@
+{
+    "config": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "inverse_position": "Pööra ümber avamine, sulgemine ja asend",
+                    "inverse_tilt": "Pööra ümber kalle",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "switch": {
+                "data": {
+                    "hide_source": "Peida lähteolem",
+                    "name": "Nimi",
+                    "entity_id": "Lähteolem"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "user": {
+                "description": "See abiline võimaldab olemi käitumist ümber pöörata. Näiteks pööra binaarandurite, kardinate, lülitite ja ventiilide avatud/suletud või sees/väljas ümber.",
+                "title": "Pööra ümber 👻",
+                "menu_options": {
+                    "binary_sensor": "Binaaranduri ümberpööramine",
+                    "cover": "Kardina ümberpööramine",
+                    "switch": "Lüliti ümberpööramine",
+                    "valve": "Ventiili ümberpööramine"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "inverse_position": "Pööra ümber avamine, sulgemine ja asend",
+                    "inverse_tilt": "Pööra ümber kalle",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Lähteolem",
+                    "hide_source": "Peida lähteolem",
+                    "name": "Nimi"
+                },
+                "title": "Pööra ümber 👻"
+            }
+        }
+    },
+    "title": "Pööra ümber 👻"
+}

@@ -1,0 +1,145 @@
+#########################################################
+# SHELLY 3EM
+#########################################################
+- platform: template
+  sensors:
+    shellyem3_total_power:
+      friendly_name: "Shelly EM3 Gesamtleistung"
+      unique_id: shellyem3_total_power
+      unit_of_measurement: "W"
+      device_class: power
+      value_template: >
+        {{
+          (
+            states('sensor.shellyem3_485519d6f7f5_channel_a_power') | float(0) +
+            states('sensor.shellyem3_485519d6f7f5_channel_b_power') | float(0) +
+            states('sensor.shellyem3_485519d6f7f5_channel_c_power') | float(0)
+          ) | round(1)
+        }}
+      availability_template: >
+        {{
+          has_value('sensor.shellyem3_485519d6f7f5_channel_a_power') and
+          has_value('sensor.shellyem3_485519d6f7f5_channel_b_power') and
+          has_value('sensor.shellyem3_485519d6f7f5_channel_c_power')
+        }}
+
+    #########################################################
+    # NETZ
+    #########################################################
+    netzleistung:
+      friendly_name: "Netzleistung"
+      unique_id: netzleistung
+      unit_of_measurement: "W"
+      device_class: power
+      value_template: >
+        {{ states('sensor.shellyem3_total_power') | float(0) }}
+      availability_template: >
+        {{ has_value('sensor.shellyem3_total_power') }}
+
+#########################################################
+# PV SOLAREDGE
+#########################################################
+- platform: template
+  sensors:
+    pv_solaredge_in_watt:
+      friendly_name: "PV Solaredge in Watt"
+      unique_id: pv_solaredge_in_watt
+      unit_of_measurement: "W"
+      device_class: power
+      value_template: >
+        {% set raw = states('sensor.solaredge_pv_power_raw') | float(0) %}
+        {% set sf = states('sensor.solaredge_pv_power_sf') | float(0) %}
+        {{ (raw * (10 ** sf)) | round(0) }}
+      availability_template: >
+        {{
+          has_value('sensor.solaredge_pv_power_raw') and
+          has_value('sensor.solaredge_pv_power_sf')
+        }}
+
+#########################################################
+# BATTERIE LEISTUNG & ZEITEN
+#########################################################
+- platform: template
+  sensors:
+    batterie_leistung_kw:
+      friendly_name: "Batterie Leistung kW"
+      unique_id: batterie_leistung_kw
+      unit_of_measurement: "kW"
+      value_template: >
+        {{ (states('sensor.solaredge_battery_power') | float(0) / 1000) | round(2) }}
+      availability_template: >
+        {{ has_value('sensor.solaredge_battery_power') }}
+
+    solaredge_battery_remaining_charge_time:
+      friendly_name: "SolarEdge Batterie Ladezeit Rest"
+      unique_id: solaredge_battery_remaining_charge_time
+      unit_of_measurement: "h"
+      device_class: duration
+      icon_template: mdi:battery-clock
+      value_template: >
+        {% set capacity = 14.7 %}
+        {% set soc = states('sensor.solaredge_battery_soc') | float(0) %}
+        {% set power_w = states('sensor.solaredge_battery_power') | float(0) %}
+        {% set power_kw = power_w / 1000 if power_w > 50 else power_w %}
+        {% if soc >= 100 or power_kw <= 0.05 %}
+          0
+        {% else %}
+          {% set remaining_kwh = capacity * (1 - (soc / 100)) %}
+          {{ (remaining_kwh / power_kw) | round(2) }}
+        {% endif %}
+      availability_template: >
+        {{ has_value('sensor.solaredge_battery_soc') and has_value('sensor.solaredge_battery_power') }}
+      attribute_templates:
+        formatted_time: >
+          {% set capacity = 14.7 %}
+          {% set soc = states('sensor.solaredge_battery_soc') | float(0) %}
+          {% set power_w = states('sensor.solaredge_battery_power') | float(0) %}
+          {% set power_kw = power_w / 1000 if power_w > 50 else power_w %}
+          {% if soc >= 100 %}
+            Voll geladen
+          {% elif power_kw <= 0.05 %}
+            Lädt nicht
+          {% else %}
+            {% set remaining_kwh = capacity * (1 - (soc / 100)) %}
+            {% set total_seconds = (remaining_kwh / power_kw) * 3600 %}
+            {% set hours = (total_seconds // 3600) | int %}
+            {% set minutes = ((total_seconds % 3600) // 60) | int %}
+            {{ "%02dh %02dm" | format(hours, minutes) }}
+          {% endif %}
+
+    solaredge_battery_remaining_discharge_time:
+      friendly_name: "SolarEdge Batterie Entladezeit Rest"
+      unique_id: solaredge_battery_remaining_discharge_time
+      unit_of_measurement: "h"
+      device_class: duration
+      icon_template: mdi:battery-clock-outline
+      value_template: >
+        {% set capacity = 14.7 %}
+        {% set soc = states('sensor.solaredge_battery_soc') | float(0) %}
+        {% set power_raw = states('sensor.solaredge_battery_power') | float(0) %}
+        {% if soc <= 0 or power_raw >= -50 %}
+          0
+        {% else %}
+          {% set power_kw = (power_raw | abs) / 1000 %}
+          {% set remaining_kwh = capacity * (soc / 100) %}
+          {{ (remaining_kwh / power_kw) | round(2) }}
+        {% endif %}
+      availability_template: >
+        {{ has_value('sensor.solaredge_battery_soc') and has_value('sensor.solaredge_battery_power') }}
+      attribute_templates:
+        formatted_time: >
+          {% set capacity = 14.7 %}
+          {% set soc = states('sensor.solaredge_battery_soc') | float(0) %}
+          {% set power_raw = states('sensor.solaredge_battery_power') | float(0) %}
+          {% if soc <= 0 %}
+            Batterie leer
+          {% elif power_raw >= -50 %}
+            Entlädt nicht
+          {% else %}
+            {% set power_kw = (power_raw | abs) / 1000 %}
+            {% set remaining_kwh = capacity * (soc / 100) %}
+            {% set total_seconds = (remaining_kwh / power_kw) * 3600 %}
+            {% set hours = (total_seconds // 3600) | int %}
+            {% set minutes = ((total_seconds % 3600) // 60) | int %}
+            {{ "%02dh %02dm" | format(hours, minutes) }}
+          {% endif %}

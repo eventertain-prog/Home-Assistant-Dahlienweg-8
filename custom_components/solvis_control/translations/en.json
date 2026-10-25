@@ -1,0 +1,659 @@
+{
+	"config":{
+		"flow_title": "Solvis Control Setup",
+		"step":{
+			"user":{
+				"title": "Solvis Control Basic Setup",
+				"description": "Please select a name and enter the connection parameters for your Solvis heating system. Before proceeding with the setup, please ensure that the TCP Modbus interface is enabled. You can find instructions on how to do this in the help section.",
+				"data":{
+					"name": "name",
+					"host": "host",
+					"port": "Port",
+					"mac": "MAC address (optional)"
+				},
+				"data_description": {
+					"name": "Name of the system in Home Assistant (freely selectable)",
+					"host": "IP address or host name of the Solvis system controller",
+					"port": "Modbus port number of the Solvis system controller (usually does not need to be changed)",
+					"mac": "MAC address of the Solvis system controller (enter only when prompted: it is detected automatically; manual entry may be necessary, e.g., in Docker environments.)"
+				}
+			},
+			"device":{
+				"title": "System control & polling intervals",
+				"description": "Please select the version of the system control and the time intervals at which the data is to be polled.",
+				"data_description": {
+					"device_version": "Version of the central control of the heating system.",
+					"poll_rate_default": "Must be a multiple of the high query interval.",
+					"poll_rate_slow": "Must be a multiple of the standard query interval.",
+					"poll_rate_high": "Must be at least 2 seconds."
+				},
+				"data":{
+					"device_version": "System controller",
+					"poll_rate_default": "Standard polling interval (in s)",
+					"poll_rate_slow": "Low polling interval (in s)",
+					"poll_rate_high": "High polling interval (in s)"
+				}
+			},
+			"features":{
+				"title": "Selection of system components",
+				"description": "Please select the assemblies and system components of your Solvis heating system.",
+				"data":{
+					"hkr2":"Heating circuit 2",
+					"hkr3":"Heating circuit 3",
+					"solar collector":"Solar thermal",
+					"heat pump":"Heat pump",
+					"heat_meter": "Heat meter",
+					"room_temperature_sensor": "Room temperature sensors (read)",
+					"write_room_temperature_sensor": "Room temperature sensors (write)",
+					"pv2heat": "PV2Heat"
+				},
+				"data_description": {
+					"hkr2": "Automatically recognized. Can be (de)activated manually",
+					"hkr3": "Automatically recognized. Can be (de)activated manually",
+					"solar collector": "Solar collectors SolvisCala Eco, SolvisCala, SolvisFera, SolvisLuna",
+					"heat pump": "Heat pumps SolvisLea, SolvisPia, SolvisMia",
+					"heat_meter": "Heat metering set WME-HKS-BEN, WME-WM",
+					"pv2heat": "PV2Heat solutions SolvisTim and SolvisTom"
+				}
+			},
+			"roomtempsensors":{
+				"title": "Room temperature sensors",
+				"description": "Please select the installed room temperature sensors and their desired behavior.",
+				"data":{
+					"hkr1_room_temp_sensor":"Room temperature sensor heating circuit 1",
+					"hkr2_room_temp_sensor":"Room temperature sensor heating circuit 2",
+					"hkr3_room_temp_sensor":"Room temperature sensor heating circuit 3"
+				},
+				"data_description": {
+					"hkr1_room_temp_sensor": "Select ‘deactivated’ if no sensor is installed, ‘read’ if the value is only to be read out (default) and ‘write’ if the value is to be written.",
+					"hkr2_room_temp_sensor": "Select ‘deactivated’ if no sensor is installed, ‘read’ if the value is only to be read out (default) and ‘write’ if the value is to be written.",
+					"hkr3_room_temp_sensor": "Select ‘deactivated’ if no sensor is installed, ‘read’ if the value is only to be read out (default) and ‘write’ if the value is to be written."
+				}
+			},
+			"storage_type": {
+				"title": "Storage type",
+				"description": "Please select the stratified storage type installed in your heating system.",
+				"data": {
+					"storage_type": "Storage type"
+				},
+				"data_description": {
+					"storage_type": "There are SolvisBen and SolvisMax stratified storage tanks. SolvisBen comes in only one size. SolvisMax is available in three sizes (457, 757, 957). Both tanks occur in different configurations that affect storage volume: solo (without heat generator), with heat pump (HP), or hybrid (gas/oil burner AND heat pump). The SolvisMax 957 can additionally be configured in three ways by sensor placement: 82/34/796, 212/34/663, and 301/34/574. In each case, the first number denotes the domestic hot water ready volume (top to S4), the second the heating buffer volume (S4 to S9), and the third the solar buffer volume (S4 to bottom). The chosen tank influences the amount of energy stored, which is determined by the integration."
+				}
+			},
+			"hkr_names": {
+				"title": "Naming of the heating circuits (optional)",
+				"description": "If desired, you can assign individual names for the heating circuits as follows. If you want to use the integration’s default names, leave the fields blank.",
+				"data": {
+					"hkr1_name": "Label for heating circuit 1",
+					"hkr2_name": "Label for heating circuit 2",
+					"hkr3_name": "Label for heating circuit 3"
+				},
+				"data_description": {
+					"hkr1_name": "Custom name for heating circuit 1 (blank = default)",
+					"hkr2_name": "Custom name for heating circuit 2 (blank = default)",
+					"hkr3_name": "Custom name for heating circuit 3 (blank = default)"
+				}
+			}
+		},
+		"error":{
+			"cannot_connect":"An error occurred while establishing the Modbus connection.",
+			"mac_error": "An error occurred while searching for the MAC address. Please enter it manually.",
+			"poll_rate_invalid_slow": "The low query interval must be a multiple of the standard query interval.",
+			"poll_rate_invalid_high": "The standard query interval must be a multiple of the high query interval.",
+			"poll_rate_invalid_order": "The standard query interval must be smaller than the low query interval and larger than the high query interval.",
+			"only_one_temperature_sensor": "Only one access variant may be selected for the room temperature sensors (read or write)."
+		}
+	},
+	"options":{
+		"flow_title":"Solvis Control Setup",
+		"step":{
+			"init":{
+				"title": "Solvis Control Basic Setup",
+				"description": "Please select a name and enter the connection parameters for your Solvis heating system. Before proceeding with the setup, please ensure that the TCP Modbus interface is enabled. You can find instructions on how to do this in the help section.",
+				"data":{
+					"name": "name",
+					"host": "host",
+					"port": "Port"
+				},
+				"data_description": {
+					"name": "Name of the system in Home Assistant (freely selectable)",
+					"host": "IP address or host name of the Solvis system controller",
+					"port": "Modbus port number of the Solvis system controller (usually does not need to be changed)"
+				}
+			},
+			"device":{
+				"title": "System control & polling intervals",
+				"description": "Please select the version of the system control and the time intervals at which the data is to be polled.",
+				"data_description": {
+					"device_version": "Version of the central control of the heating system.",
+					"poll_rate_default": "Must be a multiple of the high query interval.",
+					"poll_rate_slow": "Must be a multiple of the standard query interval.",
+					"poll_rate_high": "Must be at least 2 seconds."
+				},
+				"data":{
+					"device_version": "System controller",
+					"poll_rate_default": "Standard polling interval (in s)",
+					"poll_rate_slow": "Low polling interval (in s)",
+					"poll_rate_high": "High polling interval (in s)"
+				}
+			},
+			"features":{
+				"title": "Selection of system components",
+				"description": "Please select the assemblies and system components of your Solvis heating system.",
+				"data":{
+					"hkr2":"Heating circuit 2",
+					"hkr3":"Heating circuit 3",
+					"solar collector":"Solar thermal",
+					"heat pump":"Heat pump",
+					"heat_meter": "Heat meter",
+					"room_temperature_sensor": "Room temperature sensors (read)",
+					"write_room_temperature_sensor": "Room temperature sensors (write)",
+					"pv2heat": "PV2Heat"
+				},
+				"data_description": {
+					"hkr2": "Automatically recognized. Can be (de)activated manually",
+					"hkr3": "Automatically recognized. Can be (de)activated manually",
+					"solar collector": "Solar collectors SolvisCala Eco, SolvisCala, SolvisFera, SolvisLuna",
+					"heat pump": "Heat pumps SolvisLea, SolvisPia, SolvisMia",
+					"heat_meter": "Heat metering set WME-HKS-BEN, WME-WM",
+					"room_temperature_sensor": "Select if the value of the room temperature sensors should only be read out (default)",
+					"write_room_temperature_sensor": "Select if the value of the room temperature sensors is to be written.",
+					"pv2heat": "PV2Heat solutions SolvisTim and SolvisTom"
+				}
+			},
+			"roomtempsensors":{
+				"title": "Room temperature sensors",
+				"description": "Please select the installed room temperature sensors and their desired behavior.",
+				"data":{
+					"hkr1_room_temp_sensor":"Room temperature sensor heating circuit 1",
+					"hkr2_room_temp_sensor":"Room temperature sensor heating circuit 2",
+					"hkr3_room_temp_sensor":"Room temperature sensor heating circuit 3"
+				},
+				"data_description": {
+					"hkr1_room_temp_sensor": "Select ‘deactivated’ if no sensor is installed, ‘read’ if the value is only to be read out (default) and ‘write’ if the value is to be written.",
+					"hkr2_room_temp_sensor": "Select ‘deactivated’ if no sensor is installed, ‘read’ if the value is only to be read out (default) and ‘write’ if the value is to be written.",
+					"hkr3_room_temp_sensor": "Select ‘deactivated’ if no sensor is installed, ‘read’ if the value is only to be read out (default) and ‘write’ if the value is to be written."
+				}
+			},
+			"storage_type": {
+				"title": "Storage type",
+				"description": "Please select the stratified storage type installed in your heating system.",
+				"data": {
+					"storage_type": "Storage type"
+				},
+				"data_description": {
+					"storage_type": "There are SolvisBen and SolvisMax stratified storage tanks. SolvisBen comes in only one size. SolvisMax is available in three sizes (457, 757, 957). Both tanks occur in different configurations that affect storage volume: solo (without heat generator), with heat pump (HP), or hybrid (gas/oil burner AND heat pump). The SolvisMax 957 can additionally be configured in three ways by sensor placement: 82/34/796, 212/34/663, and 301/34/574. In each case, the first number denotes the domestic hot water ready volume (top to S4), the second the heating buffer volume (S4 to S9), and the third the solar buffer volume (S4 to bottom). The chosen tank influences the amount of energy stored, which is determined by the integration."
+				}
+			},
+			"hkr_names": {
+				"title": "Naming of the heating circuits (optional)",
+				"description": "If desired, you can assign individual names for the heating circuits as follows. If you want to use the integration’s default names, leave the fields blank.",
+				"data": {
+					"hkr1_name": "Label for heating circuit 1",
+					"hkr2_name": "Label for heating circuit 2",
+					"hkr3_name": "Label for heating circuit 3"
+				},
+				"data_description": {
+					"hkr1_name": "Custom name for heating circuit 1 (blank = default)",
+					"hkr2_name": "Custom name for heating circuit 2 (blank = default)",
+					"hkr3_name": "Custom name for heating circuit 3 (blank = default)"
+				}
+			}
+		},
+		"error":{
+			"cannot_connect":"An error occurred while establishing the Modbus connection.",
+			"poll_rate_invalid_slow": "The low query interval must be a multiple of the standard query interval.",
+			"poll_rate_invalid_high": "The standard query interval must be a multiple of the high query interval.",
+			"poll_rate_invalid_order": "The standard query interval must be smaller than the low query interval and larger than the high query interval.",
+			"only_one_temperature_sensor": "Only one access variant may be selected for the room temperature sensors (read or write)."
+		}
+	},
+	"entity":{
+		"number":{
+			"warm_water_target_temp": {
+				"name":"Warm water target temp"
+			},
+			"hkr1_room_temp_write": {
+				"name":"HKR1 Room temp"
+			},
+			"hkr1_fix_day_temp":{
+				"name":"HKR1 Fix flow day temperature"
+			},
+			"hkr1_fix_reduction_temp":{
+				"name":"HKR1 Fix flow set-back temperature"
+			},
+			"hkr1_heating_curve_day_temp_1":{
+				"name":"HKR1 Heating curve day temperature 1"
+			},
+			"hkr1_heating_curve_day_temp_2":{
+				"name":"HKR1 Heating curve day temperature 2"
+			},
+			"hkr1_heating_curve_day_temp_3":{
+				"name":"HKR1 Heating curve day temperature 3"
+			},
+			"hkr1_heating_curve_reduction_temp":{
+				"name":"HKR1 Heating curve set-back temperature"
+			},
+			"hkr1_heating_curve_slope":{
+				"name":"HKR1  Slope of the heating curve"
+			},
+			"hkr2_room_temp_write": {
+				"name":"HKR2 Room temp"
+			},
+			"hkr2_fix_day_temp":{
+				"name":"HKR2 Fix flow day temperature"
+			},
+			"hkr2_fix_reduction_temp":{
+				"name":"HKR2 Fix flow set-back temperature"
+			},
+			"hkr2_heating_curve_day_temp_1":{
+				"name":"HKR2 Heating curve day temperature 1"
+			},
+			"hkr2_heating_curve_day_temp_2":{
+				"name":"HKR2 Heating curve day temperature 2"
+			},
+			"hkr2_heating_curve_day_temp_3":{
+				"name":"HKR2 Heating curve day temperature 3"
+			},
+			"hkr2_heating_curve_reduction_temp":{
+				"name":"HKR2 Heating curve set-back temperature"
+			},
+			"hkr2_heating_curve_slope":{
+				"name":"HKR2 Slope of the heating curve"
+			},
+			"hkr3_room_temp_write": {
+				"name":"HKR3 Room temp"
+			},
+			"hkr3_fix_day_temp":{
+				"name":"HKR3 Fix flow day temperature"
+			},
+			"hkr3_fix_reduction_temp":{
+				"name":"HKR3 Fix flow set-back temperature"
+			},
+			"hkr3_heating_curve_day_temp_1":{
+				"name":"HKR3 Heating curve day temperature 1"
+			},
+			"hkr3_heat_curve_day_temp_2":{
+				"name":"HKR3 Heating curve day temperature 2"
+			},
+			"hkr3_heating_curve_day_temp_3":{
+				"name":"HKR3 Heating curve day temperature 3"
+			},
+			"hkr3_heating_curve_reduction_temp":{
+				"name":"HKR3 Heating curve set-back temperature"
+			},
+			"hkr3_heating_curve_slope":{
+				"name":"HKR3 Slope of the heating curve"
+			}
+		},
+		"select":{
+			"hkr1_operating_mode":{
+				"name":"HKR 1 Operating mode",
+				"state":{
+					"2":"Automatic",
+					"3":"Day mode",
+					"4":"Night reduced mode",
+					"5":"Standby",
+					"6":"Eco",
+					"7":"Holiday"
+				}
+			},
+			"hkr2_operating_mode":{
+				"name":"HKR2 Operating mode",
+				"state":{
+					"2":"Automatic",
+					"3":"Day mode",
+					"4":"Night reduced mode",
+					"5":"Standby",
+					"6":"Eco",
+					"7":"Holiday"
+				}
+			},
+			"hkr3_operating_mode":{
+				"name":"HKR3 Operating mode",
+				"state":{
+					"2":"Automatic",
+					"3":"Day mode",
+					"4":"Night reduced mode",
+					"5":"Standby",
+					"6":"Eco",
+					"7":"Holiday"
+				}
+			}
+		},
+		"sensor":{
+			"heatpump_hybrid_warm_water_bivalence_temp": {
+				"name":"Heat pump hybrid hot water Bivalent temperature"
+			},
+			"heatpump_hybrid_heating_bivalence_temp": {
+				"name":"Heat pump hybrid heating Bivalent temperature"
+			},
+			"hkr_number":{
+				"name":"Number of heating circuits"
+			},
+			"circulation_operating_mode":{
+				"name":"Circulation mode",
+				"state":{
+					"0":"Off",
+					"1":"Pulse",
+					"2":"Time",
+					"3":"Puls / time"
+				}
+			},
+			"pv2heat_energy":{
+				"name":"PV2Heat Heat output"
+			},
+			"solar_energy":{
+				"name":"Solar thermal Heat output"
+			},
+			"heatpump_energy_thermal":{
+				"name":"Heat pump Thermal heat output"
+			},
+			"burner_energy_thermal":{
+				"name":"Burner Thermal heat output"
+			},
+			"warm_water_energy":{
+				"name":"Hot water Heat output"
+			},
+			"heating_circuits_energy":{
+				"name":"Heating circuits Heat output"
+			},
+			"heat_generator_2_power_thermal":{
+				"name":"Heat generator 2 Thermal output"
+			},
+			"heat_generator_2_power_electric":{
+				"name":"Heat generator 2 Electrical power"
+			},
+			"warm_water_power":{
+				"name":"Hot water power"
+			},
+			"solar_pump_primary_runtime":{
+				"name":"Solar pump primary Runtime"
+			},
+			"solar_pump_secondary_runtime":{
+				"name":"Solar pump secondary Running time"
+			},
+			"messages_number":{
+				"name":"Number of messages"
+			},
+			"outdoor_air_temp_s10":{
+				"name":"Outdoor temperature (S10)"
+			},
+			"solar_collector_temp_s8":{
+				"name":"Solar collector temperature (S8)"
+			},
+			"circulation_temp_s11":{
+				"name":"Circulation temperature (S11)"
+			},
+			"hkr1_flow_water_temp_s12":{
+				"name":"HKR1 Supply temperature (S12)"
+			},
+			"hkr2_flow_water_temp_s13":{
+				"name":"HKR2 Supply temperature (S13)"
+			},
+			"hkr3_flow_water_temp_s14":{
+				"name":"HKR3 Supply temperature (S14)"
+			},
+			"warm_water_temp_s2":{
+				"name":"Hot water temperature (S2)"
+			},
+			"solar_flow_primary_temp_s7":{
+				"name":"Solar flow primary temperature (S7)"
+			},
+			"solar_return_secondary_temp_s6":{
+				"name":"Solar return secondary temperature (S6)"
+			},
+			"solar_flow_secondary_temp_s5":{
+				"name":"Solarvorlauf sekundär Temperatur (S5)"
+			},
+			"solar_power":{
+				"name":"Solar thermal power"
+			},
+			"storage_reference_temp_s3":{
+				"name":"Storage tank reference temperature (S3)"
+			},
+			"heating_buffer_lower_temp_s9":{
+				"name":"Heating buffer bottom temperature (S9)"
+			},
+			"heating_buffer_upper_temp_s4":{
+				"name":"Heating buffer top temperature (S4)"
+			},
+			"warm_water_buffer_temp_s1":{
+				"name":"Hot water buffer temperature (S1)"
+			},
+			"cold_water_temp_s15":{
+				"name":"Cold water temperature (S15)"
+			},
+			"temp_s16":{
+				"name":"Temperature sensor S16 (S16)"
+			},
+			"solar_volume_flow_s17":{
+				"name":"Solar volume flow (S17)"
+			},
+			"warm_water_volume_flow_s18":{
+				"name":"Hot water volume flow (S18)"
+			},
+			"heatpump_power_input_electric":{
+				"name":"Heat pump Electrical power consumption"
+			},
+			"pv2heat_power_electric":{
+				"name":"PV2Heat Electrical power"
+			},
+			"heatpump_power_output_thermal":{
+				"name":"Heat pump Thermal output"
+			},
+			"hkr3_room_temp":{
+				"name":"HKR3 Room temp"
+			},
+			"hkr1_room_temp":{
+				"name":"HKR1 Room temp"
+			},
+			"hkr2_room_temp":{
+				"name":"HKR2 Room temp"
+			},
+			"burner_modulation_o1_status": {
+				"name": "Burner modulation mode",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Manual PWM",
+					"2": "Auto analog",
+					"3": "Manual analog"
+				}
+			},
+			"solar_pump_primary_o2_status": {
+				"name": "Solar pump primary mode",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Manual PWM",
+					"2": "Auto analog",
+					"3": "Manual analog"
+				}
+			},
+			"solar_pump_secondary_o3_status": {
+				"name": "Solar pump secondary mode",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Manual PWM",
+					"2": "Auto analog",
+					"3": "Manual analog"
+				}
+			},
+			"heatpump_charging_pump_o4_status": {
+				"name": "Heat pump Charging pump mode",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Manual PWM",
+					"2": "Auto analog",
+					"3": "Manual analog"
+				}
+			},
+			"warm_water_pump_o5_status": {
+				"name": "Hot water pump mode",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Manual PWM",
+					"2": "Auto analog",
+					"3": "Manual analog"
+				}
+			},
+			"analog_out_o6_status": {
+				"name": "Analog Out O6 mode",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Manual PWM",
+					"2": "Auto analog",
+					"3": "Manual analog"
+				}
+			},
+			"heat_meter_power_thermal": {
+				"name": "Heat meter output"
+			},
+			"burner_modulation_o1": {
+				"name": "Burner modulation (O1)"
+			},
+			"solar_pump_primary_o2": {
+				"name": "Primary solar pump (O2)"
+			},
+			"solar_pump_secondary_o3": {
+				"name": "Secondary solar pump (O3)"
+			},
+			"heatpump_charging_pump_o4": {
+				"name": "Heat pump Charging pump (O4)"
+			},
+			"warm_water_pump_o5": {
+				"name": "Hot water pump (O5)"
+			},
+			"analog_out_o6": {
+				"name": "Analog Out (O6)"
+			},
+			"stored_energy_12": {
+				"name": "Stored energy of stratified storage (reference 12 °C)"
+			},
+			"hkr1_flow_type":{
+				"name":"HKR1 Flow mode",
+				"state":{
+					"0":"Heating curve",
+					"1":"Fixed"
+				}
+			},
+			"hkr2_flow_type":{
+				"name":"HKR2 Flow mode",
+				"state":{
+					"0":"Heating curve",
+					"1":"Fixed"
+				}
+			},
+			"hkr3_flow_type":{
+				"name":"HKR3 Flow mode",
+				"state":{
+					"0":"Heating curve",
+					"1":"Fixed"
+				}
+			}
+		},
+		"switch": {
+			"warm_water_reheat":{
+				"name":"Warm water reheat start"
+			},
+			"hkr1_warm_water_priority":{
+				"name":"HKR1 Warm water priority"
+			},
+			"hkr2_warm_water_priority":{
+				"name":"HKR2 Warm water priority"
+			},
+			"hkr3_warm_water_priority":{
+				"name":"HKR3 Warm water priority"
+			}
+		},
+		"update": {
+			"version_sc":{
+				"name":"Firmware SC"
+			},
+			"version_nbg":{
+				"name":"Firmware NBG"
+			}
+		},
+		"binary_sensor": {
+			"circulation_pump_a1":{
+				"name":"Circulation pump (A1)"
+			},
+			"heatpump_charging_pump_a2":{
+				"name":"Heat pump Charging pump (A2)"
+			},
+			"hkr1_pump_a3":{
+				"name":"HKR1 Pump (A3)"
+			},
+			"hkr2_pump_a4":{
+				"name":"HKR2 Pump (A4)"
+			},
+			"hkr3_pump_a5":{
+				"name":"HKR3 Pump (A5)"
+			},
+			"hkr3_mixer_heating_circuit_open_a6":{
+				"name":"HKR3 Mixer heating circuit open (A6)"
+			},
+			"hkr3_mixer_heating_circuit_close_a7":{
+				"name":"HKR3 Mixer heating circuit closed (A7)"
+			},
+			"hkr1_mixer_heating_circuit_open_a8":{
+				"name":"HKR1 Mixer heating circuit open (A8)"
+			},
+			"hkr1_mixer_heating_circuit_close_a9":{
+				"name":"HKR1 Mixer heating circuit closed (A9)"
+			},
+			"hkr2_mixer_heating_circuit_open_a10":{
+				"name":"HKR2 Mixer heating circuit open (A10)"
+			},
+			"hkr2_mixer_heating_circuit_close_a11":{
+				"name":"HKR2 Mixer heating circuit closed (A11)"
+			},
+			"burner_status_a12":{
+				"name":"Burner status (A12)"
+			},
+			"heatpump_heating_rod_level_2_3_a13":{
+				"name":"Heat pump heating element stage 2 & 3 (A13)"
+			},
+			"heatpump_switching_valve_a14": {
+				"name":"Heat pump changeover valve (A14)"
+			},
+			"digin_error":{
+				"name": "DigIn error",
+				"state_attributes": {
+					"sicherung_netzbaugruppe": {
+						"name": "Fuse power supply"
+					},
+					"brennerfehler": {
+						"name": "Burner error"
+					},
+					"stb1_fehler": {
+						"name": "STB1 error"
+					},
+					"stb2_fehler": {
+						"name": "STB2 error"
+					},
+					"brenner_cm424": {
+						"name": "Burner CM424"
+					},
+					"solardruck": {
+						"name": "Solar pressure"
+					},
+					"unbekannt": {
+						"name": "Unknown"
+					},
+					"anlagendruck": {
+						"name": "System pressure"
+					},
+					"kondensat": {
+						"name": "Condensate"
+					}
+				}
+			}
+		}
+	},
+	"issues": {
+		"software_update": {
+			"title": "Firmware update for Solvis heating",
+			"description": "A new firmware version is available for your heating system. Please install it as soon as possible."
+		}
+	}
+}

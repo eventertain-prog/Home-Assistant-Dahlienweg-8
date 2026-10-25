@@ -1,0 +1,63 @@
+"""Spook - Your homie."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import voluptuous as vol
+
+from homeassistant.components.zone import DOMAIN, Zone, ZoneStorageCollection
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity_component import DATA_INSTANCES, EntityComponent
+
+from ....const import DOMAIN as SPOOK_DOMAIN
+from ....errors import entity_not_found
+from ....helper_collections import async_get_storage_collection
+from ....services import AbstractSpookAdminService
+
+if TYPE_CHECKING:
+    from homeassistant.core import ServiceCall
+
+
+class SpookService(AbstractSpookAdminService):
+    """Zone service to delete zones on the fly."""
+
+    domain = DOMAIN
+    service = "delete"
+    schema = {
+        vol.Required("entity_id"): cv.entities_domain(DOMAIN),
+    }
+
+    async def async_handle_service(self, call: ServiceCall) -> None:
+        """Handle the service call."""
+        entity_component: EntityComponent[Zone] = self.hass.data[DATA_INSTANCES][DOMAIN]
+
+        collection: ZoneStorageCollection = async_get_storage_collection(
+            self.hass, DOMAIN
+        )
+
+        # Everything is looked up before anything is written. A bad one late
+        # in the list should not leave the first ones changed behind an error.
+        zone_ids = []
+        for entity_id in call.data["entity_id"]:
+            if not (entity := entity_component.get_entity(entity_id)):
+                raise entity_not_found(entity_id)
+
+            # pylint: disable-next=protected-access
+            if not entity.editable or "id" not in entity._config:  # noqa: SLF001
+                raise HomeAssistantError(
+                    translation_domain=SPOOK_DOMAIN,
+                    translation_key="zone_not_editable",
+                    translation_placeholders={
+                        "entity_id": entity_id,
+                    },
+                )
+
+            # pylint: disable-next=protected-access
+            zone_ids.append(entity._config["id"])  # noqa: SLF001
+
+        # The same zone twice in the list is still one zone. Deleting it a
+        # second time would fail after the first had already gone through.
+        for zone_id in dict.fromkeys(zone_ids):
+            await collection.async_delete_item(zone_id)

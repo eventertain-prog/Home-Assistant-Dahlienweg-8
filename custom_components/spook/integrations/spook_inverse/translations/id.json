@@ -1,0 +1,89 @@
+{
+    "config": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "inverse_position": "Balikkan pembukaan, penutupan, dan posisi",
+                    "inverse_tilt": "Balikkan kemiringan",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "user": {
+                "description": "Pembantu ini memungkinkan Anda membalikkan perilaku sebuah entitas. Misalnya, membalikkan buka/tutup atau nyala/mati pada sensor biner, penutup, sakelar, dan katup.",
+                "menu_options": {
+                    "binary_sensor": "Balikkan sensor biner",
+                    "cover": "Balikkan penutup",
+                    "switch": "Balikkan sakelar",
+                    "valve": "Balikkan katup"
+                },
+                "title": "Balikkan 👻"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "inverse_position": "Balikkan pembukaan, penutupan, dan posisi",
+                    "inverse_tilt": "Balikkan kemiringan",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Entitas sumber",
+                    "hide_source": "Sembunyikan entitas sumber",
+                    "name": "Nama"
+                },
+                "title": "Balikkan 👻"
+            }
+        }
+    },
+    "title": "Balikkan 👻"
+}

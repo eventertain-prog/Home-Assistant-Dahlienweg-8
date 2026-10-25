@@ -1,0 +1,89 @@
+{
+    "config": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "hide_source": "Ocultar entidade de origem",
+                    "entity_id": "Entidade de origem",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "inverse_position": "Inverter abertura, fechamento e posição",
+                    "inverse_tilt": "Inverter inclinação",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "user": {
+                "menu_options": {
+                    "binary_sensor": "Inverter um sensor binário",
+                    "cover": "Inverter uma cobertura",
+                    "switch": "Inverter um interruptor",
+                    "valve": "Inverter uma válvula"
+                },
+                "title": "Inverso 👻",
+                "description": "Este auxiliar permite que você inverta o comportamento de uma entidade. Por exemplo, inverter aberto/fechado ou ligado/desligado de sensores binários, coberturas, interruptores e válvulas."
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "inverse_position": "Inverter abertura, fechamento e posição",
+                    "inverse_tilt": "Inverter inclinação",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Entidade de origem",
+                    "hide_source": "Ocultar entidade de origem",
+                    "name": "Nome"
+                },
+                "title": "Inverso 👻"
+            }
+        }
+    },
+    "title": "Inverso 👻"
+}

@@ -1,0 +1,659 @@
+{
+	"config":{
+		"flow_title": "Solvis Control Installatie",
+		"step":{
+			"user":{
+				"title": "Solvis Control Basisinstallatie",
+				"description": "Gelieve een naam te kiezen en de verbindingsparameters van uw Solvis-verwarmingssysteem in te voeren. Zorg ervoor dat de TCP-Modbus-interface is ingeschakeld voordat u met de installatie begint. Een handleiding hiervoor vindt u in de hulp.",
+				"data":{
+					"name": "Naam",
+					"host": "Host",
+					"port": "Poort",
+					"mac": "MAC-Adresse (optional)"
+				},
+				"data_description": {
+					"name": "Naam van de installatie (vrij te kiezen)",
+					"host": "IP-adres of hostnaam van het Solvis-systeem",
+					"port": "Modbus-poortnummer van de Solvis-systeemregeling (hoeft doorgaans niet te worden gewijzigd)",
+					"mac": "MAC-Adresse der Solvis Systemregelung (Bitte nur nach Aufforderung eingeben: wird automatisch erkannt. Eine manuelle Eingabe kann z. B. in Docker-Umgebungen erforderlich sein.)"
+				}
+			},
+			"device":{
+				"title": "Systeeminstellingen & poll intervallen",
+				"description": "Gelieve de versie van de systeeminstellingen en de tijdsintervallen te selecteren waarin de gegevens moeten worden opgevraagd.",
+				"data_description": {
+					"device_version": "Versie van de centrale regeling van het verwarmingssysteem.",
+					"poll_rate_default": "Moet een veelvoud zijn van het hoge opvraaginterval.",
+					"poll_rate_slow": "Moet een veelvoud zijn van het standaard opvraaginterval.",
+					"poll_rate_high": "Moet minimaal 2 seconden zijn."
+				},
+				"data":{
+					"device_version": "Systeeminstelling",
+					"poll_rate_default": "Standaard opvraaginterval (in seconden)",
+					"poll_rate_slow": "Laag opvraaginterval (in seconden)",
+					"poll_rate_high": "Hoge opvraaginterval (in seconden)"
+				}
+			},
+			"features":{
+				"title": "Selectie van de systeemcomponenten",
+				"description": "Kies alstublieft de modules en systeemcomponenten van uw Solvis-verwarmingssysteem.",
+				"data":{
+					"hkr2":"Verwarmingskring 2",
+					"hkr3":"Verwarmingskring 3",
+					"solar collector":"Zonnethermie",
+					"heat pump":"Warmtepomp",
+					"heat_meter": "Warmtemengregelaar",
+					"room_temperature_sensor": "Ruimtetemperatuur sensoren (lezen)",
+					"write_room_temperature_sensor": "Ruimtetemperatuur sensoren (schrijven)",
+					"pv2heat": "PV2Heat"
+				},
+				"data_description": {
+					"hkr2": "Automatisch herkend. Kan handmatig (de)geactiveerd worden.",
+					"hkr3": "Automatisch herkend. Kan handmatig (de)geactiveerd worden.",
+					"solar collector": "Zonnecollectoren SolvisCala Eco, SolvisCala, SolvisFera, SolvisLuna",
+					"heat pump": "Warmtepomp SolvisLea, SolvisPia, SolvisMia",
+					"heat_meter": "Warmtemeterregistratieset WME-HKS-BEN, WME-WM",
+					"pv2heat": "PV2Heat-oplossingen SolvisTim en SolvisTom"
+				}
+			},
+			"roomtempsensors":{
+				"title": "Ruimtetemperatuur sensoren",
+				"description": "Selecteer de geïnstalleerde kamertemperatuursensoren en hun gewenste gedrag.",
+				"data":{
+					"hkr1_room_temp_sensor":"Ruimtetemperatuursensor verwarmingscircuit 1",
+					"hkr2_room_temp_sensor":"Ruimtetemperatuursensor verwarmingscircuit 2",
+					"hkr3_room_temp_sensor":"Ruimtetemperatuursensor verwarmingscircuit 3"
+				},
+				"data_description": {
+					"hkr1_room_temp_sensor": "Selecteer ‘gedeactiveerd’ als er geen sensor is geïnstalleerd, ‘lezen’ als de waarde alleen moet worden uitgelezen (standaard) en ‘schrijven’ als de waarde moet worden geschreven.",
+					"hkr2_room_temp_sensor": "Selecteer ‘gedeactiveerd’ als er geen sensor is geïnstalleerd, ‘lezen’ als de waarde alleen moet worden uitgelezen (standaard) en ‘schrijven’ als de waarde moet worden geschreven.",
+					"hkr3_room_temp_sensor": "Selecteer ‘gedeactiveerd’ als er geen sensor is geïnstalleerd, ‘lezen’ als de waarde alleen moet worden uitgelezen (standaard) en ‘schrijven’ als de waarde moet worden geschreven."
+				}
+			},
+			"storage_type": {
+				"title": "Speichertyp",
+				"description": "Bitte wählen Sie den Schichtenspeichertyp aus, der in Ihrem Heizsystem verbaut ist.",
+				"data": {
+					"storage_type": "Speichertyp"
+				},
+				"data_description": {
+					"storage_type": "Es gibt SolvisBen und SolvisMax Schichtenspeicher. SolvisBen nur in einer Größe. SolvisMax in drei Größen (457, 757, 957). Beide Schichtenspeicher kommen in unterschiedlichen Kombinationen vor, die das Speichervolumen beeinflussen: solo (ohne Wärmeerzeuger), mit Wärmepumpe (WP) oder hybrid (Gas-/Ölbrenner UND Wärmepumpe). Der Speicher SolvisMax 957 kann zusätzlich über die Positionierung der Sensoren auf drei Arten konfiguriert werden: 82/34/796, 212/34/663 und 301/34/574. Dabei stellt der erste Wert das Warmwasser-Bereitschaftsvolumen (OK-S4), der zweite das Heizungspuffer Volumen (S4-S9) und der dritte das Solarpuffervolumen (S4-UK) dar. Der gewählte Speicher beeinflusst die Menge der in diesem gespeicherten Energie, die von der Integration ermittelt wird."
+				}
+			},
+			"hkr_names": {
+				"title": "Benamung der Heizkreise (optional)",
+				"description": "Bei Bedarf können Sie folgend individuelle Namen für die Heizkreise festlegen. Wenn Sie die Standardnamen der Integration verwenden wollen, lassen Sie die Felder leer.",
+				"data": {
+					"hkr1_name": "Bezeichnung Heizkreis 1",
+					"hkr2_name": "Bezeichnung Heizkreis 2",
+					"hkr3_name": "Bezeichnung Heizkreis 3"
+				},
+				"data_description": {
+					"hkr1_name": "Benutzerdefinierter Name für Heizkreis 1 (leer = standard)",
+					"hkr2_name": "Benutzerdefinierter Name für Heizkreis 2 (leer = standard)",
+					"hkr3_name": "Benutzerdefinierter Name für Heizkreis 3 (leer = standard)"
+				}
+			}
+		},
+		"error":{
+			"cannot_connect":"Er is een fout opgetreden bij het maken van de Modbus-verbinding.",
+			"mac_error": "Bei der Suche nach der MAC-Adresse ist ein Fehler aufgetreten. Bitte geben Sie diese manuell ein.",
+			"poll_rate_invalid_slow": "Het lage opvraaginterval moet een veelvoud zijn van het standaard opvraaginterval.",
+			"poll_rate_invalid_high": "Het standaard opvraaginterval moet een veelvoud zijn van het hoge opvraaginterval.",
+			"poll_rate_invalid_order": "Het standaard opvraaginterval moet kleiner zijn dan het lage opvraaginterval en groter dan het hoge opvraaginterval.",
+			"only_one_temperature_sensor": "Er mag slechts één toegangsmethode voor de ruimte temperatuursensoren worden geselecteerd (lezen of schrijven)."
+		}
+	},
+	"options":{
+		"flow_title":"Solvis Control Installatie",
+		"step":{
+			"init":{
+				"title": "Solvis Control Basisinstallatie",
+				"description": "Kies een naam en voer de verbindingsparameters van het Solvis-verwarmingssysteem in. Zorg ervoor dat de TCP-Modbus-interface is ingeschakeld voordat u met de installatie begint. Een handleiding hiervoor vindt u in de hulp.",
+				"data":{
+					"name": "Naam",
+					"host": "Host",
+					"port": "Poort"
+				},
+				"data_description": {
+					"name": "Naam van de installatie (vrij te kiezen)",
+					"host": "IP-adres of hostnaam van het Solvis-systeem",
+					"port": "Modbus-poortnummer van de Solvis-systeemregeling (hoeft doorgaans niet te worden gewijzigd)"
+				}
+			},
+			"device":{
+				"title": "Systeeminstellingen & poll intervallen",
+				"description": "Kies de versie van de systeemregeling en de tijdsintervallen waarin de gegevens opgevraagd moeten worden.",
+				"data_description": {
+					"device_version": "Versie van de centrale regeling van het verwarmingssysteem.",
+					"poll_rate_default": "Moet een veelvoud zijn van het hoge opvraaginterval.",
+					"poll_rate_slow": "Moet een veelvoud zijn van het standaard opvraaginterval.",
+					"poll_rate_high": "Moet minimaal 2 seconden zijn."
+				},
+				"data":{
+					"device_version": "Systeeminstelling",
+					"poll_rate_default": "Standaard opvraaginterval (in seconden)",
+					"poll_rate_slow": "Laag opvraaginterval (in seconden)",
+					"poll_rate_high": "Hoge opvraaginterval (in seconden)"
+				}
+			},
+			"features":{
+				"title": "Selectie van de systeemcomponenten",
+				"description": "Kies alstublieft de modules en systeemcomponenten van uw Solvis-verwarmingssysteem.",
+				"data":{
+					"hkr2":"Verwarmingsgroep 2",
+					"hkr3":"Verwarmingsgroep 3",
+					"solar collector":"Zonnethermie",
+					"heat pump":"Warmtepomp",
+					"heat_meter": "Warmtemengregelaar",
+					"room_temperature_sensor": "Ruimtetemperatuur sensoren (lezen)",
+					"write_room_temperature_sensor": "Ruimtetemperatuur sensoren (schrijven)",
+					"pv2heat": "PV2Heat"
+				},
+				"data_description": {
+					"hkr2": "Automatisch herkend. Kan handmatig (de)geactiveerd worden.",
+					"hkr3": "Automatisch herkend. Kan handmatig (de)geactiveerd worden.",
+					"solar collector": "Zonnecollectoren SolvisCala Eco, SolvisCala, SolvisFera, SolvisLuna",
+					"heat pump": "Warmtepomp SolvisLea, SolvisPia, SolvisMia",
+					"heat_meter": "Warmtemeterregistratieset WME-HKS-BEN, WME-WM",
+					"room_temperature_sensor": "Kies deze optie als de waarde van de ruimte temperatuur sensoren alleen gelezen moet worden (standaard).",
+					"write_room_temperature_sensor": "Kies deze optie als de waarde van de ruimte temperatuur sensoren alleen geschreven moet worden.",
+					"pv2heat": "PV2Heat-oplossingen SolvisTim en SolvisTom"
+				}
+			},
+			"roomtempsensors":{
+				"title": "Ruimtetemperatuur sensoren",
+				"description": "Selecteer de geïnstalleerde kamertemperatuursensoren en hun gewenste gedrag.",
+				"data":{
+					"hkr1_room_temp_sensor":"Ruimtetemperatuursensor verwarmingscircuit 1",
+					"hkr2_room_temp_sensor":"Ruimtetemperatuursensor verwarmingscircuit 2",
+					"hkr3_room_temp_sensor":"Ruimtetemperatuursensor verwarmingscircuit 3"
+				},
+				"data_description": {
+					"hkr1_room_temp_sensor": "Selecteer ‘gedeactiveerd’ als er geen sensor is geïnstalleerd, ‘lezen’ als de waarde alleen moet worden uitgelezen (standaard) en ‘schrijven’ als de waarde moet worden geschreven.",
+					"hkr2_room_temp_sensor": "Selecteer ‘gedeactiveerd’ als er geen sensor is geïnstalleerd, ‘lezen’ als de waarde alleen moet worden uitgelezen (standaard) en ‘schrijven’ als de waarde moet worden geschreven.",
+					"hkr3_room_temp_sensor": "Selecteer ‘gedeactiveerd’ als er geen sensor is geïnstalleerd, ‘lezen’ als de waarde alleen moet worden uitgelezen (standaard) en ‘schrijven’ als de waarde moet worden geschreven."
+				}
+			},
+			"storage_type": {
+				"title": "Speichertyp",
+				"description": "Bitte wählen Sie den Schichtenspeichertyp aus, der in Ihrem Heizsystem verbaut ist.",
+				"data": {
+					"storage_type": "Speichertyp"
+				},
+				"data_description": {
+					"storage_type": "Es gibt SolvisBen und SolvisMax Schichtenspeicher. SolvisBen nur in einer Größe. SolvisMax in drei Größen (457, 757, 957). Beide Schichtenspeicher kommen in unterschiedlichen Kombinationen vor, die das Speichervolumen beeinflussen: solo (ohne Wärmeerzeuger), mit Wärmepumpe (WP) oder hybrid (Gas-/Ölbrenner UND Wärmepumpe). Der Speicher SolvisMax 957 kann zusätzlich über die Positionierung der Sensoren auf drei Arten konfiguriert werden: 82/34/796, 212/34/663 und 301/34/574. Dabei stellt der erste Wert das Warmwasser-Bereitschaftsvolumen (OK-S4), der zweite das Heizungspuffer Volumen (S4-S9) und der dritte das Solarpuffervolumen (S4-UK) dar. Der gewählte Speicher beeinflusst die Menge der in diesem gespeicherten Energie, die von der Integration ermittelt wird."
+				}
+			},
+			"hkr_names": {
+				"title": "Benamung der Heizkreise (optional)",
+				"description": "Bei Bedarf können Sie folgend individuelle Namen für die Heizkreise festlegen. Wenn Sie die Standardnamen der Integration verwenden wollen, lassen Sie die Felder leer.",
+				"data": {
+					"hkr1_name": "Bezeichnung Heizkreis 1",
+					"hkr2_name": "Bezeichnung Heizkreis 2",
+					"hkr3_name": "Bezeichnung Heizkreis 3"
+				},
+				"data_description": {
+					"hkr1_name": "Benutzerdefinierter Name für Heizkreis 1 (leer = standard)",
+					"hkr2_name": "Benutzerdefinierter Name für Heizkreis 2 (leer = standard)",
+					"hkr3_name": "Benutzerdefinierter Name für Heizkreis 3 (leer = standard)"
+				}
+			}
+		},
+		"error":{
+			"cannot_connect":"Er is een fout opgetreden bij het maken van de Modbus-verbinding.",
+			"poll_rate_invalid_slow": "Het lage opvraaginterval moet een veelvoud zijn van het standaard opvraaginterval.",
+			"poll_rate_invalid_high": "Het standaard opvraaginterval moet een veelvoud zijn van het hoge opvraaginterval.",
+			"poll_rate_invalid_order": "Het standaard opvraaginterval moet kleiner zijn dan het lage opvraaginterval en groter dan het hoge opvraaginterval.",
+			"only_one_temperature_sensor": "Er mag slechts één toegangsmethode voor de ruimte temperatuursensoren worden geselecteerd (lezen of schrijven)."
+		}
+	},
+	"entity":{
+		"number":{
+			"warm_water_target_temp": {
+				"name":"Warmwater insteltemperatuur"
+			},
+			"hkr1_room_temp_write": {
+				"name":"VC1 kamertemperatuur"
+			},
+			"hkr1_fix_day_temp":{
+				"name":"HKR1 vaste aanvoertemperatuur dag"
+			},
+			"hkr1_fix_reduction_temp":{
+				"name":"HKR1 vaste aanvoertemperatuur verlaagde modus"
+			},
+			"hkr1_heating_curve_day_temp_1":{
+				"name":"HKR1 verwarmingscurve dagtemperatuur 1"
+			},
+			"hkr1_heating_curve_day_temp_2":{
+				"name":"HKR1 verwarmingscurve dagtemperatuur 2"
+			},
+			"hkr1_heating_curve_day_temp_3":{
+				"name":"HKR1 verwarmingscurve dagtemperatuur 3"
+			},
+			"hkr1_heating_curve_reduction_temp":{
+				"name":"HKR1 verwarmingscurve verlaagde temperatuur"
+			},
+			"hkr1_heating_curve_slope":{
+				"name":"VC1 verwarmingscurve stijlheid"
+			},
+			"hkr2_room_temp_write": {
+				"name":"VC2 kamertemperatuur"
+			},
+			"hkr2_fix_day_temp":{
+				"name":"HKR2 vaste aanvoertemperatuur dag"
+			},
+			"hkr2_fix_reduction_temp":{
+				"name":"HKR2 vaste aanvoertemperatuur verlaagde modus"
+			},
+			"hkr2_heating_curve_day_temp_1":{
+				"name":"HKR2 verwarmingscurve dagtemperatuur 1"
+			},
+			"hkr2_heating_curve_day_temp_2":{
+				"name":"HKR2 verwarmingscurve dagtemperatuur 2"
+			},
+			"hkr2_heating_curve_day_temp_3":{
+				"name":"HKR2 verwarmingscurve dagtemperatuur 3"
+			},
+			"hkr2_heating_curve_reduction_temp":{
+				"name":"HKR2 verwarmingscurve verlaagde temperatuur"
+			},
+			"hkr2_heating_curve_slope":{
+				"name":"VC2 verwarmingscurve stijlheid"
+			},
+			"hkr3_room_temp_write": {
+				"name":"VC3 kamertemperatuur"
+			},
+			"hkr3_fix_day_temp":{
+				"name":"HKR3 vaste aanvoertemperatuur dag"
+			},
+			"hkr3_fix_reduction_temp":{
+				"name":"HKR3 vaste aanvoertemperatuur verlaagde modus"
+			},
+			"hkr3_heating_curve_day_temp_1":{
+				"name":"HKR3 verwarmingscurve dagtemperatuur 1"
+			},
+			"hkr3_heat_curve_day_temp_2":{
+				"name":"HKR3 verwarmingscurve dagtemperatuur 2"
+			},
+			"hkr3_heating_curve_day_temp_3":{
+				"name":"HKR3 verwarmingscurve dagtemperatuur 3"
+			},
+			"hkr3_heating_curve_reduction_temp":{
+				"name":"HKR3 verwarmingscurve verlaagde temperatuur"
+			},
+			"hkr3_heating_curve_slope":{
+				"name":"VC3 verwarmingscurve stijlheid"
+			}
+		},
+		"select":{
+			"hkr1_operating_mode":{
+				"name":"VC1 bedrijfsmodus",
+				"state":{
+					"2":"Automatisch",
+					"3":"Dagbedrijf",
+					"4":"Verlaagde bedrijfsmodus",
+					"5":"Stand-by",
+					"6":"Energiebesparende modus",
+					"7":"Vakantie modus"
+				}
+			},
+			"hkr2_operating_mode":{
+				"name":"VC2 bedrijfsmodus",
+				"state":{
+					"2":"Automatisch",
+					"3":"Dagbedrijf",
+					"4":"Verlaagde bedrijfsmodus",
+					"5":"Stand-by",
+					"6":"Energiebesparende modus",
+					"7":"Vakantie modus"
+				}
+			},
+			"hkr3_operating_mode":{
+				"name":"VC3 bedrijfsmodus",
+				"state":{
+					"2":"Automatisch",
+					"3":"Dagbedrijf",
+					"4":"Verlaagde bedrijfsmodus",
+					"5":"Stand-by",
+					"6":"Energiebesparende modus",
+					"7":"Vakantie modus"
+				}
+			}
+		},
+		"sensor":{
+			"heatpump_hybrid_warm_water_bivalence_temp": {
+				"name":"Warmtepomp hybride warmwater bivalentie temperatuur"
+			},
+			"heatpump_hybrid_heating_bivalence_temp": {
+				"name":"Warmtepomp hybride verwarming bivalentie temperatuur"
+			},
+			"hkr_number":{
+				"name":"Aantal verwarmingsgroepen"
+			},
+			"circulation_operating_mode":{
+				"name":"Circulatie bedrijfsmodus",
+				"state":{
+					"0":"Uit",
+					"1":"Puls",
+					"2":"Tijd",
+					"3":"Puls/Tijd"
+				}
+			},
+			"pv2heat_energy":{
+				"name":"PV2Heat warmtehoeveelheid"
+			},
+			"solar_energy":{
+				"name":"Zonnenthermie warmtehoeveelheid"
+			},
+			"heatpump_energy_thermal":{
+				"name":"Warmtepomp thermische warmtehoeveelheid"
+			},
+			"burner_energy_thermal":{
+				"name":"Brander thermische warmtehoeveelheid"
+			},
+			"warm_water_energy":{
+				"name":"Warmwater warmtehoeveelheid"
+			},
+			"heating_circuits_energy":{
+				"name":"Verwarmingsgroepen warmtehoeveelheid"
+			},
+			"heat_generator_2_power_thermal":{
+				"name":"Warmteopwekker 2 thermisch vermogen"
+			},
+			"heat_generator_2_power_electric":{
+				"name":"Warmteopwekker 2 electrisch vermogen"
+			},
+			"warm_water_power":{
+				"name":"Warmwater vermogen"
+			},
+			"solar_pump_primary_runtime":{
+				"name":"Zonnepomp primaire looptijd"
+			},
+			"solar_pump_secondary_runtime":{
+				"name":"Zonnepomp secundaire looptijd"
+			},
+			"messages_number":{
+				"name":"Aantal meldingen"
+			},
+			"outdoor_air_temp_s10":{
+				"name":"Buitentemperatuur (S10)"
+			},
+			"solar_collector_temp_s8":{
+				"name":"Zonnencollector Temperatuur (S8)"
+			},
+			"circulation_temp_s11":{
+				"name":"Circulatie Temperatuur (S11)"
+			},
+			"hkr1_flow_water_temp_s12":{
+				"name":"HKR1 aanvoertemperatuur (S12)"
+			},
+			"hkr2_flow_water_temp_s13":{
+				"name":"HKR2aanvoertemperatuur (S13)"
+			},
+			"hkr3_flow_water_temp_s14":{
+				"name":"HKR3 aanvoertemperatuur (S14)"
+			},
+			"warm_water_temp_s2":{
+				"name":"Warmwatertemperatuur (S2)"
+			},
+			"solar_flow_primary_temp_s7":{
+				"name":"Zonne-aanvoer primaire temperatuur (S7)"
+			},
+			"solar_return_secondary_temp_s6":{
+				"name":"Zonne-terugloop secundaire temperatuur (S6)"
+			},
+			"solar_flow_secondary_temp_s5":{
+				"name":"Zonne-aanvoer secundaire temperatuur (S5)"
+			},
+			"solar_power":{
+				"name":"Zonnethermie vermogen"
+			},
+			"storage_reference_temp_s3":{
+				"name":"Opslagreferentietemperatuur (S3)"
+			},
+			"heating_buffer_lower_temp_s9":{
+				"name":"Verwarmingsbuffer onder temperatuur (S9)"
+			},
+			"heating_buffer_upper_temp_s4":{
+				"name":"Verwarmingsbuffer boven temperatuur (S4)"
+			},
+			"warm_water_buffer_temp_s1":{
+				"name":"Warmwaterbuffer temperatuur (S1)"
+			},
+			"cold_water_temp_s15":{
+				"name":"Koudwatertemperatuur (S15)"
+			},
+			"temp_s16":{
+				"name":"Temperatuursensor (S16)"
+			},
+			"solar_volume_flow_s17":{
+				"name":"Zonnevolumestroom (S17)"
+			},
+			"warm_water_volume_flow_s18":{
+				"name":"Warmwatervolumestroom (S18)"
+			},
+			"heatpump_power_input_electric":{
+				"name":"Warmtepomp elektrisch vermogen"
+			},
+			"pv2heat_power_electric":{
+				"name":"PV2Heat elektrisch vermogen"
+			},
+			"heatpump_power_output_thermal":{
+				"name":"Warmtepomp thermisch vermogen"
+			},
+			"hkr3_room_temp":{
+				"name":"VC3 kamertemperatuur"
+			},
+			"hkr1_room_temp":{
+				"name":"VC1 kamertemperatuur"
+			},
+			"hkr2_room_temp":{
+				"name":"VC2 kamertemperatuur"
+			},
+			"burner_modulation_o1_status": {
+				"name": "Brandermodulatie modus",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Handmatige PWM",
+					"2": "Automatisch analoge",
+					"3": "Handmatige analoge"
+				}
+			},
+			"solar_pump_primary_o2_status": {
+				"name": "Zonnepomp primaire modus",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Handmatige PWM",
+					"2": "Automatisch analoge",
+					"3": "Handmatige analoge"
+				}
+			},
+			"solar_pump_secondary_o3_status": {
+				"name": "Zonnepomp secundaire modus",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Handmatige PWM",
+					"2": "Automatisch analoge",
+					"3": "Handmatige analoge"
+				}
+			},
+			"heatpump_charging_pump_o4_status": {
+				"name": "Warmtepomp laadpomp modus",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Handmatige PWM",
+					"2": "Automatisch analoge",
+					"3": "Handmatige analoge"
+				}
+			},
+			"warm_water_pump_o5_status": {
+				"name": "Warmwaterpomp modus",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Handmatige PWM",
+					"2": "Automatisch analoge",
+					"3": "Handmatige analoge"
+				}
+			},
+			"analog_out_o6_status": {
+				"name": "Analoge uitgang O6 modus",
+				"state": {
+					"0": "Auto PWM",
+					"1": "Handmatige PWM",
+					"2": "Automatisch analoge",
+					"3": "Handmatige analoge"
+				}
+			},
+			"heat_meter_power_thermal": {
+				"name": "Warmtemeter vermogen"
+			},
+			"burner_modulation_o1": {
+				"name": "Brandermodulatie (O1)"
+			},
+			"solar_pump_primary_o2": {
+				"name": "Zonnepomp primaire (O2)"
+			},
+			"solar_pump_secondary_o3": {
+				"name": "Zonnepomp secundaire (O3)"
+			},
+			"heatpump_charging_pump_o4": {
+				"name": "Warmtepomp laadpomp (O4)"
+			},
+			"warm_water_pump_o5": {
+				"name": "Warmwaterpomp (O5)"
+			},
+			"analog_out_o6": {
+				"name": "Analoge Uit (O6)"
+			},
+			"stored_energy_12": {
+				"name": "Gespeicherte Energie Schichtenspeicher (Referenz 12 °C)"
+			},
+			"hkr1_flow_type":{
+				"name":"VC1 aanvoerwijze",
+				"state":{
+					"0":"Curve",
+					"1":"Vast"
+				}
+			},
+			"hkr2_flow_type":{
+				"name":"VC2 aanvoerwijze",
+				"state":{
+					"0":"Curve",
+					"1":"Vast"
+				}
+			},
+			"hkr3_flow_type":{
+				"name":"VC3 aanvoerwijze",
+				"state":{
+					"0":"Curve",
+					"1":"Vast"
+				}
+			}
+		},
+		"switch": {
+			"warm_water_reheat":{
+				"name":"Start de naverwarming van warm water"
+			},
+			"hkr1_warm_water_priority":{
+				"name":"VC1 Warmwater Voorrang"
+			},
+			"hkr2_warm_water_priority":{
+				"name":"VC2 Warmwatervoorrang"
+			},
+			"hkr3_warm_water_priority":{
+				"name":"VC3 Warmwatervoorrang"
+			}
+		},
+		"update": {
+			"version_sc":{
+				"name":"Firmware SC"
+			},
+			"version_nbg":{
+				"name":"Firmware NBG"
+			}
+		},
+		"binary_sensor": {
+			"circulation_pump_a1":{
+				"name":"Circulatiepomp (A1)"
+			},
+			"heatpump_charging_pump_a2":{
+				"name":"Warmtepomp laadpomp (A2)"
+			},
+			"hkr1_pump_a3":{
+				"name":"HKR1 Pomp (A3)"
+			},
+			"hkr2_pump_a4":{
+				"name":"HKR2 Pomp (A4)"
+			},
+			"hkr3_pump_a5":{
+				"name":"HKR3 Pomp (A5)"
+			},
+			"hkr3_mixer_heating_circuit_open_a6":{
+				"name":"HKR3 menger verwarmingsgroep open (A6)"
+			},
+			"hkr3_mixer_heating_circuit_close_a7":{
+				"name":"HKR3 menger verwarmingsgroep dicht (A7)"
+			},
+			"hkr1_mixer_heating_circuit_open_a8":{
+				"name":"HKR1 menger verwarmingsgroep open (A8)"
+			},
+			"hkr1_mixer_heating_circuit_close_a9":{
+				"name":"HKR1 menger verwarmingskring dicht (A9)"
+			},
+			"hkr2_mixer_heating_circuit_open_a10":{
+				"name":"HKR2 menger verwarmingskring open (A10)"
+			},
+			"hkr2_mixer_heating_circuit_close_a11":{
+				"name":"HKR2 menger verwarmingskring dicht (A11)"
+			},
+			"burner_status_a12":{
+				"name":"Branderstatus (A12)"
+			},
+			"heatpump_heating_rod_level_2_3_a13":{
+				"name":"Warmtepomp verwarmingselement niveau 2 & 3 (A13)"
+			},
+			"heatpump_switching_valve_a14": {
+				"name":"Warmtepomp omschakelklep (A14)"
+			},
+			"digin_error":{
+				"name": "DigIn fout",
+				"state_attributes": {
+					"sicherung_netzbaugruppe": {
+						"name": "Zekering netwerkgroep"
+					},
+					"brennerfehler": {
+						"name": "Branderfout"
+					},
+					"stb1_fehler": {
+						"name": "Fout in de veiligheidstemperatuurbegrenzer 1"
+					},
+					"stb2_fehler": {
+						"name": "Fout in de veiligheidstemperatuurbegrenzer 2"
+					},
+					"brenner_cm424": {
+						"name": "Brander CM424"
+					},
+					"solardruck": {
+						"name": "Zonnedruk"
+					},
+					"unbekannt": {
+						"name": "Onbekend"
+					},
+					"anlagendruck": {
+						"name": "Systeemdruk"
+					},
+					"kondensat": {
+						"name": "Condensaat"
+					}
+				}
+			}
+		}
+	},
+	"issues": {
+		"software_update": {
+			"title": "Firmwareupdate voor het Solvis systeem",
+			"description": "Er is een nieuwe firmwareversie beschikbaar voor uw verwarmingssysteem. Installeer deze zo snel mogelijk."
+		}
+	}
+}

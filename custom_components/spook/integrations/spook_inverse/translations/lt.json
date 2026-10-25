@@ -1,0 +1,89 @@
+{
+    "config": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "name": "Pavadinimas",
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą"
+                },
+                "title": "Inversija 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą",
+                    "inverse_position": "Invertuoti atidarymą, uždarymą ir padėtį",
+                    "inverse_tilt": "Invertuoti pakreipimą",
+                    "name": "Pavadinimas"
+                },
+                "title": "Inversija 👻"
+            },
+            "switch": {
+                "data": {
+                    "name": "Pavadinimas",
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą"
+                },
+                "title": "Inversija 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą",
+                    "name": "Pavadinimas"
+                },
+                "title": "Inversija 👻"
+            },
+            "user": {
+                "menu_options": {
+                    "binary_sensor": "Invertuoti dvejetainio jutiklio būseną",
+                    "cover": "Invertuoti uždangą",
+                    "switch": "Invertuoti jungiklį",
+                    "valve": "Invertuoti vožtuvą"
+                },
+                "title": "Inversija 👻",
+                "description": "Šis pagalbininkas leidžia invertuoti subjekto elgseną. Pavyzdžiui, sukeisti atidaryta/uždaryta arba įjungta/išjungta dvejetainiams jutikliams, uždangoms, jungikliams ir vožtuvams."
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "name": "Pavadinimas",
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą"
+                },
+                "title": "Inversija 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą",
+                    "inverse_position": "Invertuoti atidarymą, uždarymą ir padėtį",
+                    "inverse_tilt": "Invertuoti pakreipimą",
+                    "name": "Pavadinimas"
+                },
+                "title": "Inversija 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą",
+                    "name": "Pavadinimas"
+                },
+                "title": "Inversija 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Šaltinio subjektas",
+                    "hide_source": "Slėpti šaltinio subjektą",
+                    "name": "Pavadinimas"
+                },
+                "title": "Inversija 👻"
+            }
+        }
+    },
+    "title": "Inversija 👻"
+}

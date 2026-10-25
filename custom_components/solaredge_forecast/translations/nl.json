@@ -1,0 +1,63 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Solaredge Forecast opties",
+        "data": {
+          "site id": "De ID of de installatie",
+          "account key": "De api sleutel om verbinding te maken met de SolarEdge API",
+          "startday": "Startdag van de periode waarover de voorspelling wordt gemaakt" ,
+          "startmonth": "Startmaand van de periode waarover de voorspelling wordt gemaakt" ,
+          "endday": "Einddag van de periode waarover de voorspelling wordt gemaakt",
+          "endmonth": "Eindmaand van de periode waarover de voorspelling wordt gemaakt",
+          "startdate production": "OPTIONEEL: Startdatum van energieproductie %d%m%Y"
+        }
+      }
+    },
+    "error": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "invalid_startday": "Foutieve startdag (controleer dag-maand combinatie)",
+      "invalid_endday": "Foutieve einddag (controleer dag-maand combinatie)",
+      "invalid_period": "Foutieve periode (controleer of de huidige dag niet buiten de periode valt)",
+      "invalid_startdate_production": "Foutieve datum, controleer of de datum correct is en dat deze minimaal 1 jaar in het verleden ligt"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "invalid_startday": "Foutieve startdag (controleer dag-maand combinatie)",
+      "invalid_endday": "Foutieve einddag (controleer dag-maand combinatie)",
+      "invalid_period": "Foutieve periode (controleer of de huidige dag niet buiten de periode valt)",
+      "invalid_startdate_production": "Foutieve datum, controleer of de datum correct is en dat deze minimaal 1 jaar in het verleden ligt"
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "title": "Solaredge Forecast opties",
+        "data": {
+          "site id": "De ID of de installatie",
+          "account key": "De api sleutel om verbinding te maken met de SolarEdge API",
+          "startday": "Startdag van de periode waarover de voorspelling wordt gemaakt" ,
+          "startmonth": "Startmaand van de periode waarover de voorspelling wordt gemaakt" ,
+          "endday": "Einddag van de periode waarover de voorspelling wordt gemaakt",
+          "endmonth": "Eindmaand van de periode waarover de voorspelling wordt gemaakt",
+          "startdate production": "OPTIONEEL: Startdatum van energieproductie %d%m%Y"
+        }
+      }
+    },
+    "error": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "invalid_startday": "Foutieve startdag (controleer dag-maand combinatie)",
+      "invalid_endday": "Foutieve einddag (controleer dag-maand combinatie)",
+      "invalid_period": "Foutieve periode (controleer of de huidige dag niet buiten de periode valt)",
+      "invalid_startdate_production": "Foutieve datum, controleer of de datum correct is en dat deze minimaal 1 jaar in het verleden ligt"
+
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "invalid_startday": "Foutieve startdag (controleer dag-maand combinatie)",
+      "invalid_endday": "Foutieve einddag (controleer dag-maand combinatie)",
+      "invalid_period": "Foutieve periode (controleer of de huidige dag niet buiten de periode valt)",
+      "invalid_startdate_production": "Foutieve datum, controleer of de datum correct is en dat deze minimaal 1 jaar in het verleden ligt"
+    }
+  }
+}

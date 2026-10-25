@@ -1,0 +1,89 @@
+{
+    "config": {
+        "step": {
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "inverse_position": "Invertovať otváranie, zatváranie a polohu",
+                    "inverse_tilt": "Invertovať sklon",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            },
+            "switch": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            },
+            "user": {
+                "menu_options": {
+                    "switch": "Invertovať prepínač",
+                    "valve": "Invertovať ventil",
+                    "binary_sensor": "Invertovať binárny senzor",
+                    "cover": "Invertovať tienenie"
+                },
+                "description": "Tento pomocník ti umožní invertovať správanie entity. Napríklad prehodiť otvorené/zatvorené alebo zap/vyp pri binárnych senzoroch, tienení, prepínačoch a ventiloch.",
+                "title": "Invertovať 👻"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "switch": {
+                "title": "Invertovať 👻",
+                "data": {
+                    "name": "Názov",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "entity_id": "Zdrojová entita"
+                }
+            },
+            "valve": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            },
+            "binary_sensor": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            },
+            "cover": {
+                "data": {
+                    "entity_id": "Zdrojová entita",
+                    "hide_source": "Skryť zdrojovú entitu",
+                    "inverse_position": "Invertovať otváranie, zatváranie a polohu",
+                    "inverse_tilt": "Invertovať sklon",
+                    "name": "Názov"
+                },
+                "title": "Invertovať 👻"
+            }
+        }
+    },
+    "title": "Invertovať 👻"
+}

@@ -1,0 +1,1057 @@
+import asyncio
+import json
+import logging
+import random
+import re
+import time
+import base64
+from asyncio import CancelledError
+from typing import Final
+
+import aiohttp
+from aiohttp import ClientConnectionError, ClientResponseError
+from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from smllib import SmlStreamReader
+from smllib.const import UNITS
+from smllib.errors import CrcError, SmlLibException
+from smllib.sml import SmlListEntry, ObisCode
+
+from .const import (
+    ENUM_MODES,
+    MODE_UNKNOWN,
+    MODE_0_AutoScanMode,
+    MODE_1_IEC_62056_21,
+    MODE_2_Logarex,
+    MODE_3_SML_1_04,
+    MODE_10_ImpressionsAmbient,
+    MODE_99_PLAINTEXT,
+    ENUM_IMPLEMENTATIONS,
+    OBIS_DATA_KEY,
+    METRICS_KEY,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+MIN_RETRY_DELAY: Final = 2.5#0.2
+MAX_RETRY_DELAY: Final = 10 #1.2
+
+# 'UNITS' maps the sml unit-code to its name - here we need the opposite direction [some names are used by
+# multiple codes - like 'm³' - so we build it reversed: the first (lowest) code wins, as it did before]
+UNIT_CODE_BY_NAME: Final = {a_name: a_code for a_code, a_name in reversed(UNITS.items())}
+
+def gen_log_list(obis_values:dict)-> list:
+    a_list = []
+    try:
+        for a_obis in obis_values.values():
+            a_list.append(format_entry_short(a_obis))
+    except BaseException:
+        pass
+    return a_list
+
+def format_entry_short(entry: SmlListEntry) -> str:
+    try:
+        value = entry.get_value()
+        if entry.unit:
+            unit = UNITS.get(entry.unit, f' ?:{entry.unit}')
+            return f'{entry.obis.obis_short} ({entry.obis}): {value}{unit}'
+        return f'{entry.obis.obis_short} ({entry.obis}): {value}'
+    except Exception:
+        return 'A_ERROR_OBIS_SHORT'
+
+def find_unit_int_from_string(unit_str: str) -> int | None:
+    return UNIT_CODE_BY_NAME.get(unit_str)
+
+def clean_host(host_input):
+        # Ensure it looks like a URL so urlparse can handle it
+        if "://" not in host_input:
+            host_input = "http://" + host_input
+
+        from urllib.parse import urlparse
+        parsed = urlparse(host_input)
+        # .hostname returns just the IP/Domain (strips port and path)
+        # .netloc returns IP/Domain + port (e.g., 192.168.1.50:8080)
+        if parsed.port is not None and parsed.port != 80:
+            return f"{parsed.hostname}:{parsed.port}"
+        else:
+            return parsed.hostname
+
+
+class TibberLocalBridge:
+    ONLY_DIGITS: re.Pattern = re.compile("^[0-9]+$")
+    PLAIN_TEXT_LINE: re.Pattern = re.compile(r'(.*?)-(.*?):(.*?)\.(.*?)\.(.*?)(?:\*(.*?)|)\((.*?)\)')
+    # matches OBIS codes with only one dot ('1-0:1.8(...)' or '1-0:1.8*255(...)') - the optional
+    # '*f' part is kept in its own group, so the missing '.e' is inserted at the right position
+    TWO_DIGIT_CODE_PATTERN: re.Pattern = re.compile(r'^([^.]*\.[^.]*?)(\*[^.(]*)?(\(.*$)')
+
+    def obis_hex_from_parts(obis_src: list, do_log_output: bool) -> str | None:
+        """Convert the regex parts 'a-b:c.d.e*f' into the 12 char hex OBIS code smllib expects."""
+        try:
+            values = [int(part) for part in obis_src[1:6]]
+            values.append(int(obis_src[6]) if obis_src[6] else 255)
+
+            # in Logarex we can receive 81.7.2255 instead of 81.7.2*255
+            if values[4] > 255 and values[5] == 255:
+                string_val_4 = str(values[4])
+                # when the value[4] ends with '255'
+                if string_val_4[-3:] == "255":
+                    # strip the 255 (so a '12255' becomes just '12')
+                    values[4] = int(string_val_4[:-3])
+
+            # we might want to check, if any of the int values is larger than 255!
+            if any(x > 255 for x in values):
+                _LOGGER.info(f"obis_hex_from_parts(): the obis source: {obis_src} contains at least on value > 256, can not convert to hex representation")
+                return None
+            else:
+                return bytes(values).hex()
+        except (ValueError, TypeError) as e:
+            if do_log_output:
+                _LOGGER.warning(f"could not parse a value as int from list {obis_src} - ... - Exception: {e}")
+            return None
+
+    def check_first_six_parts_for_digits_or_last_is_none(parts: list[str]) -> bool:
+        return (TibberLocalBridge.ONLY_DIGITS.match(parts[1]) is not None and
+                TibberLocalBridge.ONLY_DIGITS.match(parts[2]) is not None and
+                TibberLocalBridge.ONLY_DIGITS.match(parts[3]) is not None and
+                TibberLocalBridge.ONLY_DIGITS.match(parts[4]) is not None and
+                TibberLocalBridge.ONLY_DIGITS.match(parts[5]) is not None and
+                (parts[6] is None or TibberLocalBridge.ONLY_DIGITS.match(parts[6]) is not None))
+
+    def _ws_parse_header_string(payload_head):
+        # Parse device and topic
+        device = None
+        topic = None
+        try:
+            header_str = payload_head.strip('<>')
+            parts = header_str.split()
+            for a_part in parts:
+                if a_part.startswith('device:'):
+                    device = a_part.split(':', 1)[1]
+                elif a_part.startswith('topic:'):
+                    topic = a_part.split(':', 1)[1]
+
+            topic = topic.strip('"')
+            device = device.lower()
+            #_LOGGER.debug(f"ws_parse_header(): device: {device}, topic: {topic}")
+
+        except (UnicodeDecodeError, ValueError) as e:
+            _LOGGER.info(f"ws_parse_header_string(): Failed to parse string header: {e}")
+
+        return (topic, device)
+
+    def _ws_parse_header_bytes(sml_head: bytes):
+        try:
+            return TibberLocalBridge._ws_parse_header_string(sml_head.decode('ascii', errors='ignore'))
+        except (UnicodeDecodeError, ValueError) as e:
+            _LOGGER.info(f"_ws_parse_header_bytes(): Failed to parse bytes header: {e}")
+        return (None, None)
+
+    # _communication_mode 'MODE_3_SML_1_04' is the initially implemented mode (reading binary sml data)...
+    # 'all' other modes have to be implemented... also it could be that the bridge does
+    # not return a value for param_id=27
+    def __init__(self, host, pwd, websession, node_num: int = 1, com_mode: int = MODE_3_SML_1_04, options: dict = None, coordinator: DataUpdateCoordinator = None):
+        self._use_classic = True
+
+        if websession is not None:
+            a_host = clean_host(host)
+            _LOGGER.info(f"restarting TibberLocalBridge integration... for host: '{a_host}' node: '{node_num}' com_mode: '{com_mode}' with options: {options}")
+            self.web_session = websession
+
+            enc = base64.b64encode(f"admin:{pwd}".encode('utf-8')).decode('utf-8')
+            self.basic_auth_for_header = f"Basic {enc}"
+            self.REQ_HEADERS_BASIC_AUTH = {
+                "Authorization": self.basic_auth_for_header
+            }
+
+            # the final URL's for data & metrics will be "auto-detected" via 'check_and_apply_fw_version'
+            self.url_data = None
+            self.url_metrics = None
+
+            # the 'old' tibber pulse FW URLs...
+            self.url_data_classic: Final = f"http://{a_host}/data.json?node_id={node_num}"
+            self.url_metrics_classic: Final = f"http://{a_host}/metrics.json?node_id={node_num}"
+
+            # the since FW '1794-03b6cbaf' URL's
+            self.url_data_2026_09: Final = f"http://{a_host}/node_data.json?node_id={node_num}"
+            self.url_metrics_2026_09: Final = f"http://{a_host}/node_metrics.json?node_id={node_num}"
+            self.url_test: Final = f"http://{a_host}/test.json"
+            self.url_status: Final = f"http://{a_host}/status.json"
+            self._test_data = None
+
+            # still existing also in new FW...
+            self.url_mode: Final = f"http://{a_host}/node_params.json?node_id={node_num}"
+
+            # we must fetch the bridge nodes configuration (from all nodes) and get the one,
+            # that match the 'node_num' - since we need the 'eui'
+            self.url_metadata: Final = f"http://{a_host}/nodes.json"
+            self.node_number = node_num
+
+            # websocket stuff...
+            self.url_ws: Final = f"ws://{a_host}/ws"
+            self.url_ws_host: Final = a_host
+
+        # The 'self.node_device_id' will be needed if multiple pulses are connected to the
+        # bridge - and the websocket does not include the node_id (node nummer), instead
+        # there is a '<device ...' header that must be used to identify the actual node.
+        # The value will be init by calling 'get_eui_for_node()'
+        self.node_device_id = None
+
+        # When we support multiple pulse via one brigde, we need to handle multiple device
+        # ids (that we collect) in the eui_list...
+        self.node_eui_list = None
+
+        self.ws_connected = False
+        self.ws_supported = True
+        self.ws_obj = None
+        self.ws_reader = None
+        self.ws_writer = None
+        self._ws_LAST_UPDATE = 0
+        self._ws_debounced_update_task: asyncio.Task | None = None
+        self._ws_LAST_NEW_DATA_NOTIFY = 0
+
+        self._com_mode = com_mode
+        self.ignore_parse_errors = False
+        if options is not None and "ignore_parse_errors" in options:
+            self.ignore_parse_errors = options["ignore_parse_errors"]
+        self._metrics_update_is_running = False
+        self._LAST_METRICS_UPDATE = 0
+        self._metrics_data = {}
+        self._obis_values = {}
+        #self._obis_values_by_short = {}
+
+        self._fallback_usage_counter = 0
+        self._use_fallback_by_default = False
+        if com_mode == MODE_3_SML_1_04:
+            self.MAX_READ_RETRIES = 5
+        else:
+            self.MAX_READ_RETRIES = 1
+
+        self._coordinator = coordinator
+
+    @property
+    def use_classic(self):
+        return self._use_classic
+
+    async def _check_api_endpoint(self, url):
+        try:
+            async with self.web_session.get(url, headers=self.REQ_HEADERS_BASIC_AUTH, ssl=False, timeout=10.0) as response:
+                if response.status < 400 or response.status in (401, 403):
+                    _LOGGER.debug(f"_check_api_endpoint(): read endpoint {url} is up! Status: {response.status}")
+                    try:
+                        # for whatever reason the test.json endpoint is returning a plain-text that can't be read via
+                        # 'response.json()'
+                        resp_str = await response.text()
+                        while len(resp_str) > 1 and resp_str[0] != '{':
+                            resp_str = resp_str[1:]
+                        while len(resp_str) > 1 and resp_str[-1] != '}':
+                            resp_str = resp_str[:-1]
+                        self._test_data = json.loads(resp_str)
+                    except BaseException as exc:
+                        _LOGGER.debug(f"_check_api_endpoint(): could not read test data {type(exc).__name__}: {exc}")
+                    return True
+                else:
+                    _LOGGER.info(f"_check_api_endpoint(): NEW FW Endpoint {url} returned status: {response.status} - using CLASSIC")
+                    return False
+        except Exception as err:
+            _LOGGER.warning(f"_check_api_endpoint(): Failed to reach API endpoint {url}: {err}")
+            return False
+
+    async def check_and_apply_fw_version(self):
+        use_new_fw_code = False
+        if await self._check_api_endpoint(self.url_test):
+            if self._test_data is not None and "esp32_fw_v" in self._test_data:
+                fw_version_str = self._test_data.get("esp32_fw_v")
+                _LOGGER.debug(f"_check_and_apply_fw_version(): extracted esp32 FW version: {fw_version_str} - {self._test_data}")
+                try:
+                    # the first fw we are aware of that use the new URLs is 1794-03b6cbaf
+                    if int(fw_version_str.split("-")[0]) > 1793:
+                        use_new_fw_code = True
+                except BaseException as exc:
+                    _LOGGER.debug(f"_check_and_apply_fw_version() could not extract fw number from '{fw_version_str}' - {type(exc).__name__}: {exc}")
+
+        if use_new_fw_code:
+            _LOGGER.debug(f"_check_and_apply_fw_version(): RESULT using 2026_09-FW code")
+            self._use_classic = False
+            self.url_data = self.url_data_2026_09
+            self.url_metrics = self.url_metrics_2026_09
+        else:
+            _LOGGER.debug(f"_check_and_apply_fw_version(): RESULT using CLASSIC-FW code")
+            self._use_classic = True
+            self.url_data = self.url_data_classic
+            self.url_metrics = self.url_metrics_classic
+
+    async def get_eui_for_node(self):
+        # this must be called when we need a device_id... (when we receive data via websocket)
+        self.node_eui_list = []
+        try:
+            async with self.web_session.get(self.url_metadata, headers=self.REQ_HEADERS_BASIC_AUTH, ssl=False, timeout=10.0) as res:
+                try:
+                    res.raise_for_status()
+                    if res.status == 200:
+                        json_resp = await res.json()
+                        for a_node_obj in json_resp:
+                            a_eui = a_node_obj.get("eui", None)
+                            if not a_eui:
+                                _LOGGER.warning(f"get_eui_for_node(): bridge does not provide a 'eui' from: {a_node_obj}")
+                                continue
+
+                            a_eui = a_eui.lower()
+                            self.node_eui_list.append(a_eui)
+
+                            # have we already set our internal device id?
+                            if self.node_device_id is not None:
+                                continue
+
+                            if int(a_node_obj.get("node_id", -1)) == self.node_number:
+                                _LOGGER.debug(f"get_eui_for_node(): {a_node_obj} has the 'node_id' matching the one we are looking for: {self.node_number}")
+                                self.node_device_id = a_eui
+
+                except Exception as exc:
+                    if res.status == 401:
+                        _LOGGER.warning(f"get_eui_for_node(): access to bridge failed with INNER exception: {type(exc).__name__} - {exc} - are you sure that you have provided the correct password for your bridge?", stack_info=True)
+                    else:
+                        _LOGGER.warning(f"get_eui_for_node(): access to bridge failed with INNER exception: {type(exc).__name__} - {exc}", stack_info=True)
+        except Exception as exc:
+            _LOGGER.warning(f"get_eui_for_node(): access to bridge failed with OUTER exception: {type(exc).__name__} - {exc}", stack_info=True)
+
+    async def detect_com_mode(self):
+        await self.detect_com_mode_from_node_param27()
+        _LOGGER.debug(f"detect_com_mode(): after detect_com_mode_from_node_param27 mode is: {self._com_mode}")
+        # if we can't read the mode from the properties (or the mode is not in the ENUM_MODES)
+        # we want to check, if we can read plaintext?!
+        if self._com_mode == MODE_UNKNOWN:
+            await self._check_modes_internal(MODE_99_PLAINTEXT, MODE_3_SML_1_04)
+
+        elif self._com_mode == MODE_0_AutoScanMode:
+            await self._check_modes_internal(MODE_3_SML_1_04, MODE_99_PLAINTEXT)
+
+        elif self._com_mode in [MODE_1_IEC_62056_21, MODE_2_Logarex]:
+            # https://github.com/marq24/ha-tibber-pulse-local/issues/29
+            # looks like we can parse 'IEC_62056_21' as plaintext?!
+
+            # https://github.com/marq24/ha-tibber-pulse-local/issues/136
+            # looks like we can parse 'Logarex' also as plaintext?!
+            await self._check_modes_internal(MODE_99_PLAINTEXT, MODE_3_SML_1_04)
+
+        # finally, raise value error if not implemented yet!
+        if self._com_mode not in ENUM_IMPLEMENTATIONS:
+            raise ValueError(f"NOT IMPLEMENTED yet! - Mode: {self._com_mode}")
+
+    async def _check_modes_internal(self, mode_1: int, mode_2: int):
+        _LOGGER.debug(f"detect_com_mode is {self._com_mode}: will try to read {mode_1}")
+        await self.read_tibber_local(mode_1, retry_count=0, log_payload=True)
+        if len(self._obis_values) > 0:
+            self._com_mode = mode_1
+            _LOGGER.debug(f"detect_com_mode(): 1 SUCCESS -> _com_mode: {self._com_mode}")
+        else:
+            if (mode_2 != -1):
+                _LOGGER.debug(f"detect_com_mode(): 1 is {self._com_mode}: {mode_1} failed - will try to read {mode_2}")
+                await self.read_tibber_local(mode_2, retry_count=0, log_payload=True)
+                if len(self._obis_values) > 0:
+                    self._com_mode = mode_2
+                    _LOGGER.debug(f"detect_com_mode(): 2 SUCCESS -> _com_mode: {self._com_mode}")
+                else:
+                    _LOGGER.debug(f"detect_com_mode(): 2 is {self._com_mode}: {mode_1} failed and {mode_2} failed")
+                    pass
+            else:
+                _LOGGER.debug(f"detect_com_mode(): 1 is {self._com_mode}: {mode_1} failed")
+
+    async def detect_com_mode_from_node_param27(self):
+        # {'param_id': 27, 'name': 'meter_mode', 'size': 1, 'type': 'uint8', 'help': '0:IEC 62056-21, 1:Count impressions', 'value': [3]}
+        self._com_mode = MODE_UNKNOWN
+        try:
+            async with self.web_session.get(self.url_mode, headers=self.REQ_HEADERS_BASIC_AUTH, ssl=False, timeout=10.0) as res:
+                try:
+                    res.raise_for_status()
+                    if res.status == 200:
+                        json_resp = await res.json()
+                        for a_parm_obj in json_resp:
+                            if a_parm_obj is not None:
+                                if a_parm_obj.get("param_id", -1) == 27 or a_parm_obj.get("name", "") == "meter_mode":
+                                    if 'value' in a_parm_obj:
+                                        self._com_mode = a_parm_obj['value'][0]
+                                        # check for known modes in the UI (http://YOUR-IP-HERE/nodes/1/config)
+                                        if self._com_mode not in ENUM_MODES:
+                                            self._com_mode = MODE_UNKNOWN
+                                        break
+                except Exception as exc:
+                    if res.status == 401:
+                        _LOGGER.warning(f"detect_com_mode_from_node_param27(): access to bridge failed with INNER exception: {type(exc).__name__} - {exc} - are you sure that you have provided the correct password for your bridge?", stack_info=True)
+                    elif res.status == 404:
+                        _LOGGER.warning(f"detect_com_mode_from_node_param27(): access to bridge failed with INNER exception: {type(exc).__name__} - {exc} - are you sure that you have provided the correct node_id?", stack_info=True)
+                    else:
+                        _LOGGER.warning(f"detect_com_mode_from_node_param27(): access to bridge failed with INNER exception: {type(exc).__name__} - {exc}", stack_info=True)
+        except Exception as exc:
+            _LOGGER.warning(f"detect_com_mode_from_node_param27(): access to bridge failed with OUTER exception: {type(exc).__name__} - {exc}", stack_info=True)
+
+    async def update(self):
+        await self.read_tibber_local(mode=self._com_mode, retry_count=0)
+        await self.updated_tibber_metrics_if_needed()
+
+    async def update_and_log(self):
+        await self.read_tibber_local(mode=self._com_mode, retry_count=0, log_payload=True)
+
+    async def read_tibber_local(self, mode: int, retry_count: int, log_payload: bool = False):
+        if self.url_data is None:
+            await self.check_and_apply_fw_version()
+        _LOGGER.debug(f"read_tibber_local(): start[{retry_count}] - mode: {mode} request: {self.url_data}")
+        # on init we wait up to 60 seconds till we get a reply from the bridge (when HA is starting, plenty of
+        # requests are running...
+        async with self.web_session.get(self.url_data, headers=self.REQ_HEADERS_BASIC_AUTH, ssl=False, timeout=60.0 if len(self._obis_values) == 0 else 10.0) as res:
+            try:
+                res.raise_for_status()
+                if res.status == 200:
+                    if mode == MODE_3_SML_1_04:
+                        await self.mode_03_read_sml(await res.read(), retry_count, log_payload)
+
+                    elif mode == MODE_10_ImpressionsAmbient:
+                        await self.mode_10_read_json_impressions_ambient(await res.json(), retry_count, log_payload)
+
+                    elif mode == MODE_99_PLAINTEXT:
+                        plaintext_payload = await res.text(errors="ignore")
+                        await self.mode_99_read_plaintext(plaintext_payload, retry_count, log_payload)
+
+                    if _LOGGER.isEnabledFor(logging.DEBUG):
+                        _LOGGER.debug(f"read_tibber_local: after[{retry_count}] read - found OBIS entries: '{gen_log_list(self._obis_values)}'")
+                else:
+                    if res is not None:
+                        _LOGGER.warning(f"access to bridge failed with code {res.status} - res: {res}")
+                    else:
+                        _LOGGER.warning(f"access to bridge failed (UNKNOWN reason - 'res' is None)")
+
+            except BaseException as exc:
+                _LOGGER.warning(f"access to bridge failed with exception: {type(exc).__name__} - {exc}")
+
+    async def mode_99_read_plaintext(self, plaintext: str, retry_count: int, log_payload: bool):
+        try:
+            temp_obis_values = []
+            if log_payload:
+                _LOGGER.debug(f"mode_99_read_plaintext(): plaintext payload: {plaintext}")
+
+            if '\r' not in plaintext:
+                plaintext = plaintext.replace(' ', '\r')
+
+            for a_line in plaintext.splitlines():
+                try:
+                    # a patch for invalid reading?!
+                    # a_line = a_line.replace('."55*', '.255*')
+
+                    # if there are not at least 2 dot's before the opening '(', we must insert a '.0' before
+                    # the opening '(' [see issue #73]
+                    a_line = TibberLocalBridge.TWO_DIGIT_CODE_PATTERN.sub(r'\1.0\2\3', a_line, count=1)
+
+                    # it looks like that in the format 'IEC-62056-21' there are the '1-0:' is missing ?! [this is really
+                    # a very DUMP implementation] - but we check, if the line has at least
+                    # 1. '(' [value start]
+                    # 2. ')' [value end]
+                    # 3. '*' [the unit delimiter]
+                    if len(a_line) >= 4 and a_line[1] != '-' and a_line[3] != ':' and '*' in a_line and '(' in a_line and ')' in a_line:
+                        a_line = '1-0:' + a_line
+
+                    # obis pattern is 'a-b:c.d.e*f' - 'parts[0]' is the text before the match, 'parts[1:7]' are
+                    # the six obis values and 'parts[7]' is the value (including its optional unit)
+                    parts = TibberLocalBridge.PLAIN_TEXT_LINE.split(a_line)
+                    if len(parts) == 9:
+                        if TibberLocalBridge.check_first_six_parts_for_digits_or_last_is_none(parts):
+                            obis_hex = TibberLocalBridge.obis_hex_from_parts(parts, not self.ignore_parse_errors)
+                            if obis_hex is None:
+                                if not self.ignore_parse_errors:
+                                    _LOGGER.debug(f"mode_99_read_plaintext(): ignore invalid code: {a_line}")
+                                continue
+
+                            value = parts[7]
+                            unit = None
+                            if '*' in value:
+                                val_with_unit = value.split("*")
+                                if '.' in val_with_unit[0]:
+                                    value = float(val_with_unit[0])
+                                else:
+                                    value = int(val_with_unit[0])
+
+                                # converting any "kilo" unit to base unit...
+                                # so kWh will be converted to Wh - or kV will be V
+                                if val_with_unit[1].lower()[0] == 'k':
+                                    value = value * 1000
+                                    val_with_unit[1] = val_with_unit[1][1:]
+
+                                unit = find_unit_int_from_string(val_with_unit[1])
+
+                            # creating finally the "right" object from the parsed information
+                            entry = SmlListEntry()
+                            entry.obis = ObisCode(obis_hex)
+                            entry.value = value
+                            entry.unit = unit
+                            # our plaintext values are not scaled - but 'SmlListEntry.get_value()' requires the attribute
+                            entry.scaler = 0
+                            temp_obis_values.append(entry)
+                        else:
+                            if not self.ignore_parse_errors:
+                                _LOGGER.debug(f"ignore none digits-only code: {a_line}")
+                    else:
+                        if parts[0] == '!':
+                            break
+                        elif len(parts[0]) > 0 and parts[0][0] != '/':
+                            if not self.ignore_parse_errors:
+                                _LOGGER.debug(f"mode_99_read_plaintext(): unknown entry: {parts[0]} (line: '{a_line}')")
+                        # else:
+                        #    print('ignore '+ parts[0])
+
+                except Exception as e:
+                    if not self.ignore_parse_errors:
+                        _LOGGER.info(f"mode_99_read_plaintext(): {type(e).__name__} - {e}")
+
+            if len(temp_obis_values) > 0:
+                self._obis_values = {}
+                #self._obis_values_by_short = {}
+                for entry in temp_obis_values:
+                    self._obis_values[entry.obis] = entry
+                    #self._obis_values_by_short[entry.obis.obis_short] = entry
+
+        except Exception as exc:
+            if not self.ignore_parse_errors:
+                _LOGGER.warning(f"Exception {exc} while process data - plaintext: {plaintext}")
+            # check if we should retry...
+            await self._check_for_retry_read(mode=MODE_99_PLAINTEXT, retry_count=retry_count)
+
+    async def mode_10_read_json_impressions_ambient(self, data: dict, retry_count: int, log_payload: bool):
+        # {"$type": "imp_data", "timestamp_ms": 2122625,"delta_ms": 9879,"kw":0.364409, "kwh": 0.0040}
+        temp_obis_values = {}
+
+        if log_payload:
+            _LOGGER.debug(f"mode 10 payload: {data}")
+
+        if isinstance(data, dict) and data.get("$type") == "imp_data":
+            kw = data.get("kw")
+            if kw is not None:
+                # this is hardcoded '0100100700ff' (Wirkleistung) - but the value in kW... and the sensor
+                # is in W - so we have to multiply it with 1000
+                entry = SmlListEntry()
+                entry.obis = ObisCode('0100100700ff')
+                entry.unit = 27 # 27 is the unit: Watt
+                entry.scaler = 0
+                entry.value = kw * 1000
+                temp_obis_values[entry.obis] = entry
+
+            kwh = data.get("kwh")
+            if kwh is not None:
+                entry = SmlListEntry()
+                entry.obis = ObisCode('0100010800ff')
+                entry.unit = 30 # 30 is the unit: Wh
+                entry.scaler = 0
+                entry.value = kwh * 1000
+                temp_obis_values[entry.obis] = entry
+        else:
+            _LOGGER.debug(f"mode_10_read_json_impressions_ambient(): unexpected payload: {data}")
+
+        if len(temp_obis_values) > 0:
+            self._obis_values = temp_obis_values
+
+    async def mode_03_read_sml(self, payload: bytes, retry_count: int, log_payload: bool):
+        # for whatever reason, the data that can be read from the TibberPulse Webserver is
+        # not always valid! [I guess there is an issue with an internal buffer in the webserver
+        # implementation] - in any case, the bytes received contain sometimes invalid characters,
+        # so the 'stream.get_frame()' method will not be able to parse the data...
+        if log_payload:
+            _LOGGER.debug(f"sml payload: {payload}")
+
+        stream = SmlStreamReader()
+        stream.add(payload)
+        try:
+            sml_frame = stream.get_frame()
+            if sml_frame is None:
+                if not self.ignore_parse_errors:
+                    _LOGGER.info(f"Bytes missing - payload: {payload}")
+                # check if we should retry...
+                await self._check_for_retry_read(mode=MODE_3_SML_1_04, retry_count=retry_count)
+            else:
+                use_fallback_impl = self._use_fallback_by_default
+                sml_list = None
+                a_source_exc = None
+
+                if not use_fallback_impl:
+                    try:
+                        # Shortcut to extract all values without parsing the whole frame
+                        sml_list = sml_frame.get_obis()
+
+                    except SmlLibException as source_exc:
+                        use_fallback_impl = True
+                        a_source_exc = source_exc
+
+                        # if we have multiple times the same exception, we switch to the fallback implementation
+                        self._fallback_usage_counter = self._fallback_usage_counter + 1
+                        if self._fallback_usage_counter > 20:
+                            self._use_fallback_by_default = True
+
+                if use_fallback_impl:
+                    # see issue https://github.com/marq24/ha-tibber-pulse-local/issues/64
+                    # there exist some devices that can't be parsed via 'get_obis()'
+                    # see also my issue @ https://github.com/spacemanspiff2007/SmlLib/issues/28
+                    sml_list = []
+                    for msg in sml_frame.parse_frame():
+                        # we simply get through all message bodies and check if we can find the 'val_list' - if so
+                        # we just add them to our result.
+                        for val in getattr(msg.message_body, 'val_list', []):
+                            sml_list.append(val)
+
+                    if a_source_exc is not None and len(sml_list) == 0 and not self.ignore_parse_errors:
+                        _LOGGER.debug(f"Exception {a_source_exc} while 'sml_frame.get_obis()' (frame parsing did not work either) - payload: {payload}")
+
+                # if we have a list of SML entries, we can process them
+                if sml_list is not None and len(sml_list) > 0:
+                    self._obis_values = {}
+                    for entry in sml_list:
+                        self._obis_values[entry.obis] = entry
+                        #self._obis_values_by_short[entry.obis.obis_short] = entry
+
+        except (CrcError, BaseException) as exc:
+            if not self.ignore_parse_errors:
+                if isinstance(exc, CrcError):
+                    _LOGGER.info(f"CRC while parse data - payload: {payload}")
+                else:
+                    _LOGGER.warning(f"Exception {type(exc).__name__} - {exc} while parse data - payload: {payload}")
+
+            # check, if we should retry...
+            await self._check_for_retry_read(mode=MODE_3_SML_1_04, retry_count=retry_count)
+
+    async def _check_for_retry_read(self, mode: int, retry_count: int):
+        if retry_count < self.MAX_READ_RETRIES:
+            new_retry_count = retry_count + 1
+            await asyncio.sleep(random.uniform(MIN_RETRY_DELAY, MAX_RETRY_DELAY))
+            await self.read_tibber_local(mode=mode, retry_count=new_retry_count)
+
+    async def updated_tibber_metrics_if_needed(self, log_payload: bool = False):
+        if self._metrics_update_is_running:
+            return
+
+        # only request every 30 minutes (= 30 * 60sec) for new meta_data...
+        to_wait_till = self._LAST_METRICS_UPDATE + 1800
+        if to_wait_till > time.time():
+            #_LOGGER.debug(f"updated_tibber_metrics_if_needed(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
+            return
+
+        self._metrics_update_is_running = True
+        try:
+            if self.url_metrics is None:
+                await self.check_and_apply_fw_version()
+            _LOGGER.debug(f"updated_tibber_metrics_if_needed(): request: {self.url_metrics}")
+            async with self.web_session.get(self.url_metrics, headers=self.REQ_HEADERS_BASIC_AUTH, ssl=False, timeout=10.0) as res:
+                res.raise_for_status()
+                try:
+                    self._metrics_data = await res.json()
+                    if log_payload:
+                        _LOGGER.debug(f"updated_tibber_metrics_if_needed(): metrics response: {self._metrics_data}")
+                except BaseException as exc:
+                    _LOGGER.warning(f"updated_tibber_metrics_if_needed(): failed to parse metrics JSON: {type(exc).__name__} - {exc}")
+        except BaseException as exc:
+            _LOGGER.warning(f"updated_tibber_metrics_if_needed(): access to bridge failed with exception: {type(exc).__name__} - {exc}")
+
+        finally:
+            # we also mark failed attempts - so a bridge that does not provide any metrics will not be
+            # requested with every update cycle
+            self._LAST_METRICS_UPDATE = time.time()
+            self._metrics_update_is_running = False
+
+    async def _ws_handle_binary_message(self, binary_data) -> bool:
+        if not isinstance(binary_data, (bytes, bytearray)) or len(binary_data) == 0:
+            _LOGGER.debug(f"_ws_handle_binary_message(): WSMsgType.BINARY invalid payload type/len [type:{type(binary_data).__name__} len:{len(binary_data) if hasattr(binary_data, '__len__') else -1}]")
+            return False
+
+        separator_pos = binary_data.find(b'>')
+        if separator_pos <= 0:
+            _LOGGER.debug(f"_ws_handle_binary_message(): WSMsgType.BINARY invalid data (NO '>' FOUND) [len:{len(binary_data)}]")
+            return False
+
+        binary_head = binary_data[:separator_pos + 1]
+        _LOGGER.debug(f"_ws_handle_binary_message(): WSMsgType.BINARY head: {binary_head}")
+        topic, msg_for_device_id = TibberLocalBridge._ws_parse_header_bytes(binary_head)
+
+        if self.node_device_id is not None and self.node_device_id != msg_for_device_id:
+            _LOGGER.debug(f"_ws_handle_binary_message(): WSMsgType.BINARY device of node_num '{self.node_device_id}' not matching the device in the message {msg_for_device_id}")
+            return False
+
+        return await self._ws_dispatch_payload(
+            source_type=aiohttp.WSMsgType.BINARY,
+            topic=topic,
+            body=binary_data[separator_pos + 1:],
+            raw_payload=binary_data,
+        )
+
+    async def _ws_handle_text_message(self, msg) -> bool:
+        # make sure we have a string text here - but to be honest, so far there has been no evidence
+        # so far, that a TibberPuldeBridge would send `WSMsgType.TEXT` - so all this here is really
+        # just a fallback...
+        if hasattr(msg.data, "decode"):
+            text_data = msg.data.decode('ascii', errors='ignore')
+        elif isinstance(msg.data, str):
+            text_data = msg.data
+        else:
+            text_data = str(msg.data)
+
+        if not isinstance(text_data, str) or len(text_data) == 0:
+            _LOGGER.debug(f"_ws_handle_text_message(): WSMsgType.TEXT invalid payload type/len [type:{type(text_data).__name__} len:{len(text_data) if hasattr(text_data, '__len__') else -1}]")
+            return False
+
+        separator_pos = text_data.find('>')
+        if separator_pos <= 0:
+            _LOGGER.debug(f"_ws_handle_text_message(): WSMsgType.TEXT invalid data (NO '>' FOUND) [len:{len(text_data)}]")
+            return False
+
+        text_head = text_data[:separator_pos + 1]
+        _LOGGER.debug(f"_ws_handle_text_message(): WSMsgType.TEXT head: {text_head}")
+        topic, msg_for_device_id = TibberLocalBridge._ws_parse_header_string(text_head)
+
+        if self.node_device_id is not None and self.node_device_id != msg_for_device_id:
+            _LOGGER.debug(f"_ws_handle_text_message(): WSMsgType.TEXT device of node_num '{self.node_device_id}' not matching the device in the message {msg_for_device_id}")
+            return False
+
+        return await self._ws_dispatch_payload(
+            source_type=msg.type,
+            topic=topic,
+            body=text_data[separator_pos + 1:],
+            raw_payload=text_data,
+        )
+
+    async def _ws_dispatch_payload(self, source_type: aiohttp.WSMsgType, topic: str | None, body: bytes | str, raw_payload: bytes | str) -> bool:
+        if topic is None:
+            _LOGGER.warning(f"_ws_dispatch_payload(): {source_type.name} topic '{topic}'/mode_'{self._com_mode}' in: {raw_payload}")
+            return False
+
+        if self._com_mode == MODE_3_SML_1_04 and source_type == aiohttp.WSMsgType.BINARY and "sml" in topic.lower():
+            if not isinstance(body, bytes):
+                _LOGGER.warning(f"_ws_dispatch_payload(): {source_type.name} expected bytes payload for MODE_3_SML_1_04 but got {type(body).__name__}")
+                return False
+
+            # no need to do anything with the body - to make the code more readable, we add the prefix 'binary_' to the variable name
+            binary_body = body
+            _LOGGER.debug(f"_ws_dispatch_payload(): {source_type.name} body '{topic}' [len:{len(binary_body)}]: {binary_body if len(binary_body) <= 15 else binary_body[:15]}...")
+            try:
+                await self.mode_03_read_sml(binary_body, retry_count=self.MAX_READ_RETRIES, log_payload=False)
+                return True
+            except Exception as e:
+                _LOGGER.warning(f"_ws_dispatch_payload(): {source_type.name} 'mode_03_read_sml' caused {type(e).__name__} [{binary_body}] {e}")
+                return False
+
+        if self._com_mode == MODE_99_PLAINTEXT:
+            # make sure that the text_body is really a string...
+            text_body = body.decode('ascii', errors='ignore') if isinstance(body, bytes) else body
+            _LOGGER.debug(f"_ws_dispatch_payload(): {source_type.name} body (as TEXT) '{topic}' [len:{len(text_body)}]: {text_body if len(text_body) <= 15 else text_body[:15]}...")
+
+            try:
+                await self.mode_99_read_plaintext(text_body, retry_count=self.MAX_READ_RETRIES, log_payload=False)
+                return True
+            except Exception as e:
+                _LOGGER.warning(f"_ws_dispatch_payload(): {source_type.name} 'mode_99_read_plaintext' caused {type(e).__name__} [{text_body}] {e}")
+                return False
+
+        if self._com_mode == MODE_10_ImpressionsAmbient and source_type == aiohttp.WSMsgType.BINARY:
+            json_body = body.decode('ascii', errors='ignore') if isinstance(body, bytes) else body
+            _LOGGER.debug(f"_ws_dispatch_payload(): {source_type.name} body (as JSON) '{topic}' [len:{len(json_body)}]: {json_body if len(json_body) <= 15 else json_body[:15]}...")
+            try:
+                await self.mode_10_read_json_impressions_ambient(json.loads(json_body), retry_count=self.MAX_READ_RETRIES, log_payload=False)
+                return True
+            except Exception as e:
+                _LOGGER.warning(f"_ws_dispatch_payload(): {source_type.name} 'mode_10_read_json_impressions_ambient' caused {type(e).__name__} [{json_body}] {e}")
+                return False
+
+        if source_type == aiohttp.WSMsgType.TEXT:
+            _LOGGER.warning(f"_ws_dispatch_payload(): WSMsgType.TEXT 'UNHANDLED' topic '{topic}'/mode_'{self._com_mode}' in: {raw_payload}")
+        else:
+            _LOGGER.warning(f"_ws_dispatch_payload(): {source_type.name} topic '{topic}'/mode_'{self._com_mode}' in: {raw_payload}")
+        return False
+
+    # websocket implementation from here...
+    async def ws_connect(self):
+        # make sure we have run the FW detection...
+        if self.url_data is None:
+            await self.check_and_apply_fw_version()
+
+        # we should always try first, if the default WebSocket implementation will
+        # work (could be that another FW update will bring that back to live) - and
+        # then for sure the aiohttp lib implementation is way more robust than anything
+        # marq24 had developed! - YES the additional check will take max 10 seconds!
+        if self._use_classic or await self.ws_check_implementation():
+            _LOGGER.info(f"ws_connect(): will start the classic websocket implementation")
+            await self.ws_connect_classic()
+        else:
+            _LOGGER.info(f"ws_connect(): will start the self implemented websocket (plain reader/writer)")
+            await self.ws_connect_2026_09()
+
+    async def ws_check_implementation(self):
+        could_read_message_with_aiohttp = False
+        try:
+            async with self.web_session.ws_connect(self.url_ws, headers=self.REQ_HEADERS_BASIC_AUTH, compress=0) as ws:
+                _LOGGER.info(f"ws_check_implementation(): test aiohttp websocket with: {self.url_ws} (waiting max of 10 sec)")
+
+                # Wait up to 10 seconds for the next message from the websocket
+                msg = await asyncio.wait_for(ws.receive(timeout=10.0), timeout=10.5)
+                if msg.type in [aiohttp.WSMsgType.BINARY, aiohttp.WSMsgType.TEXT, aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR]:
+                    _LOGGER.debug(f"ws_check_implementation(): received: {msg} - all COOL - use real WebSocket implementation")
+                    could_read_message_with_aiohttp = True
+
+        except asyncio.TimeoutError as timeout:
+            _LOGGER.info(f"ws_check_implementation(): Timeout! No message from ws via aiohttp in 10 sec :-/")
+        except BaseException as x:
+            _LOGGER.error(f"ws_check_implementation(): Exception {type(x).__name__} - {x}")
+
+        finally:
+            try:
+                await self.ws_close(ws)
+            except BaseException:
+                #ignore any closing errors of our test...
+                pass
+
+        _LOGGER.debug(f"ws_check_implementation(): RESULT could_read_message_with_aiohttp ?: {could_read_message_with_aiohttp}")
+        return could_read_message_with_aiohttp
+
+    async def ws_connect_classic(self):
+        try:
+            async with self.web_session.ws_connect(self.url_ws, headers=self.REQ_HEADERS_BASIC_AUTH, compress=0) as ws:
+                self.ws_connected = True
+                self.ws_obj = ws
+                _LOGGER.info(f"ws_connect_classic(): connected to websocket: {self.url_ws} - in COM MODE: {self._com_mode}")
+                async for msg in ws:
+                    self._ws_LAST_UPDATE = time.time()
+                    new_data_arrived = False
+
+                    # self._com_mode == MODE_3_SML_1_04
+                    # self._com_mode == MODE_10_ImpressionsAmbient
+                    # self._com_mode == MODE_99_PLAINTEXT
+
+                    if msg.type == aiohttp.WSMsgType.BINARY:
+                        try:
+                            new_data_arrived = await self._ws_handle_binary_message(msg.data)
+                        except Exception as e:
+                            _LOGGER.debug(f"ws_connect_classic(): Could not read WSMsgType.BINARY from: {msg} - caused {type(e).__name__} {e}")
+
+                    elif msg.type == aiohttp.WSMsgType.TEXT:
+                        try:
+                            new_data_arrived = await self._ws_handle_text_message(msg)
+                        except Exception as e:
+                            _LOGGER.debug(f"ws_connect_classic(): Could not read WSMsgType.TEXT from: {msg} - caused {type(e).__name__} {e}")
+
+                    elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                        _LOGGER.debug(f"ws_connect_classic(): received: {msg}")
+                        break
+
+                    # do we need to push new data event to the coordinator?
+                    if new_data_arrived:
+                        await self.updated_tibber_metrics_if_needed()
+                        self._ws_notify_for_new_data()
+
+        except ClientResponseError as cre:
+            if hasattr(cre, "status") and cre.status == 404:
+                _LOGGER.info(f"ws_connect_classic(): Could not connect to websocket at {self.url_ws} - [HTTP:404] - looks like bridge firmware update '1428-6debbaf6/795-379a5e21' not installed")
+                self.ws_supported = False
+            else:
+                _LOGGER.error(f"ws_connect_classic(): Could not connect to websocket: {type(cre).__name__} - {cre}")
+        except ClientConnectionError as err:
+            _LOGGER.error(f"ws_connect_classic(): Could not connect to websocket: {type(err).__name__} - {err}")
+        except asyncio.TimeoutError as time_exc:
+            _LOGGER.debug(f"ws_connect_classic(): TimeoutError: No WebSocket message received within timeout period: {type(time_exc).__name__} - {time_exc}")
+        except CancelledError as canceled:
+            _LOGGER.debug(f"ws_connect_classic(): Terminated? - {type(canceled).__name__} - {canceled}")
+        except BaseException as x:
+            _LOGGER.error(f"ws_connect_classic(): !!! {type(x).__name__} - {x}")
+
+        _LOGGER.debug(f"ws_connect_classic(): -- END HAS REACHED --")
+        try:
+            await self.ws_close(ws)
+        except UnboundLocalError as is_unbound:
+            _LOGGER.debug(f"ws_connect_classic(): skipping ws_close() (since ws is unbound)")
+        except BaseException as e:
+            _LOGGER.error(f"ws_connect_classic(): Error while calling ws_close(): {type(e).__name__} - {e}")
+
+        self.ws_connected = False
+        self.ws_obj = None
+        return None
+
+    async def ws_connect_2026_09(self):
+        # We can't use a standard websocket lib here, since the Pulse sends always two bytes
+        # b'\x02%' that can't be ready with aiohttp :-/
+        self.ws_reader, self.ws_writer = await asyncio.open_connection(self.url_ws_host, 80)
+
+        request = (
+            f"GET /ws HTTP/1.1\r\n"
+            f"Host: {self.url_ws_host}\r\n"
+            f"Authorization: {self.basic_auth_for_header}\r\n"
+            "\r\n"
+        )
+        self.ws_writer.write(request.encode("utf-8"))
+        await self.ws_writer.drain()
+
+        # # Consume HTTP handshake until double CRLF (prevents frame offset errors)
+        # try:
+        #     handshake = await self.ws_reader.readuntil(b"\r\n\r\n")
+        #     _LOGGER.debug(f"Handshake response received:\n{handshake.decode(errors='ignore')}")
+        # except (asyncio.IncompleteReadError, asyncio.LimitOverrunError) as err:
+        #     _LOGGER.error(f"Failed to complete WS handshake: {err}")
+        #     return
+
+        self.ws_connected = True
+        _LOGGER.debug(f"ws_connect_2026_09(): connected to websocket: {self.url_ws} in COM MODE: {self._com_mode}")
+
+        # our data container
+        message_buffer = bytearray()
+
+        try:
+            # Framing Loop using exact byte reading
+            # https://www.rfc-editor.org/rfc/rfc6455.html#section-5.2
+            # once again thanks @arrizer for your patience explaining a NOOB how all this is working!
+            while True:
+                # Read exactly the 2-byte WebSocket frame header
+                header = await self.ws_reader.readexactly(2)
+                byte1, byte2 = header[0], header[1]
+
+                is_fin = bool(byte1 & 0x80)
+                opcode = byte1 & 0x0F
+                is_masked = bool(byte2 & 0x80)
+                payload_len = byte2 & 0x7F
+
+                # RFC 6455 extended payload length handling
+                if payload_len >= 126:
+                    bytes_to_read = 2
+                    if payload_len == 127:
+                        # RFC specifies an 8-byte (64-bit) length field for 127
+                        bytes_to_read = 8
+                    ext_bytes = await self.ws_reader.readexactly(bytes_to_read)
+                    payload_len = int.from_bytes(ext_bytes, byteorder="big")
+
+                # Read masking key if present
+                mask_key = await self.ws_reader.readexactly(4) if is_masked else None
+
+                # Read the frame payload
+                payload = await self.ws_reader.readexactly(payload_len) if payload_len > 0 else b""
+                #_LOGGER.debug(f"ws_connect_2026_09(): read {payload_len} bytes for frame {payload}")
+
+                # Unmask payload if server set the mask bit
+                if is_masked and payload:
+                    payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
+
+                # Handle control frames (Ping/Pong/Close) or accumulate data frames
+                if opcode == 0x8:  # Connection Close
+                    _LOGGER.info("ws_connect_2026_09(): Server sent close frame.")
+                    break
+                elif opcode == 0x9:  # Ping -> Respond with Pong (0xA)
+                    pong_frame = bytes([0x8A, len(payload)]) + payload
+                    self.ws_writer.write(pong_frame)
+                    await self.ws_writer.drain()
+                    continue
+                elif opcode == 0xA:  # Pong
+                    continue
+
+                message_buffer.extend(payload)
+
+                # If FIN bit is set, the full message has been received
+                if is_fin:
+                    await self.handle_buffer(bytes(message_buffer))
+                    message_buffer.clear()
+
+        except asyncio.IncompleteReadError:
+            _LOGGER.info("ws_connect_2026_09(): WebSocket connection closed cleanly by remote host.")
+        except asyncio.CancelledError:
+            _LOGGER.debug("ws_connect_2026_09(): WebSocket reader task cancelled.")
+        except Exception as ex:
+            _LOGGER.warning(f"ws_connect_2026_09(): Error parsing WebSocket stream: {type(ex).__name__}: {ex}")
+        finally:
+            self.ws_connected = False
+            if self.ws_writer:
+                self.ws_writer.close()
+                await self.ws_writer.wait_closed()
+                self.ws_writer = None
+                self.ws_reader = None
+
+    async def handle_buffer(self, buffer):
+        self._ws_LAST_UPDATE = time.time()
+        new_data_arrived = False
+        try:
+            new_data_arrived = await self._ws_handle_binary_message(buffer)
+        except Exception as e:
+            _LOGGER.debug(f"ws_connect_2026_09(): Could not read {buffer} - caused {type(e).__name__} {e}")
+
+        if new_data_arrived:
+            await self.updated_tibber_metrics_if_needed()
+            self._ws_notify_for_new_data()
+
+    def _ws_notify_for_new_data(self):
+        if self._ws_debounced_update_task is not None and not self._ws_debounced_update_task.done():
+            # an already scheduled task will pick up the latest data by itself...
+            # so there is no need to cancel it
+            #self._ws_debounced_update_task.cancel()
+            # there is already a data debouncer running, so we simply wait, till that
+            # one is doing the job...
+            return
+        else:
+            self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
+
+    async def _ws_debounce_coordinator_update(self):
+        if self._coordinator is not None:
+            elapsed = time.time() - self._ws_LAST_NEW_DATA_NOTIFY
+            if elapsed < 1:
+                sec_to_sleep = 1 - elapsed
+                #_LOGGER.debug(f"_ws_debounce_coordinator_update(): sleeping for {sec_to_sleep} seconds before notifying for updated data")
+                await asyncio.sleep(sec_to_sleep)
+
+            if _LOGGER.isEnabledFor(logging.DEBUG):
+                _LOGGER.debug(f"{self.url_ws} received: {gen_log_list(self._obis_values)}")
+            self._coordinator.async_set_updated_data({
+                OBIS_DATA_KEY: self._obis_values,
+                METRICS_KEY: self._metrics_data
+            })
+            self._ws_LAST_NEW_DATA_NOTIFY = time.time()
+
+    async def ws_close(self, ws):
+        """Close the WebSocket connection cleanly."""
+        _LOGGER.debug(f"ws_close(): called")
+        self.ws_connected = False
+        if ws is not None:
+            try:
+                await ws.close()
+                _LOGGER.debug(f"ws_close(): connection closed successfully")
+            except BaseException as e:
+                _LOGGER.info(f"ws_close(): Error closing WebSocket connection: {type(e).__name__} - {e}")
+            finally:
+                ws = None
+                self.ws_obj = None
+        else:
+            _LOGGER.debug(f"ws_close(): No active WebSocket connection to close (ws is None)")
+
+        # we want to trigger the "ws-connection-state" update...
+        if self._coordinator is not None:
+            async_call_later(self._coordinator.hass, 5, self._coordinator.call_later_update_device_registry)
+
+    async def ws_close_and_prepare_to_terminate(self):
+        try:
+            # a possibly scheduled coordinator update is not required any longer
+            if self._ws_debounced_update_task is not None and not self._ws_debounced_update_task.done():
+                self._ws_debounced_update_task.cancel()
+            self._ws_debounced_update_task = None
+
+            if self.ws_obj is not None:
+                await self.ws_close(self.ws_obj)
+                await asyncio.sleep(4)
+                if not self.ws_connected and self.ws_obj is None:
+                    _LOGGER.debug(f"ws_close_and_prepare_to_terminate(): completed! -- ALL iS FINE --")
+                else:
+                    _LOGGER.debug(f"ws_close_and_prepare_to_terminate(): completed, but ws_connected: {self.ws_connected} | ws_obj: {self.ws_obj}")
+
+                # funny this code can close the websession... but this will bring HA into trouble,,,
+                #await self.websession.connector.close()
+                #self.websession.detach()
+                #_LOGGER.debug(f"ws_close_and_prepare_to_terminate(): websession is detached!")
+
+            if self.ws_reader is not None:
+                # TODO MUST IMPLEMENT SOMETHING ?!
+                pass
+
+        except UnboundLocalError as is_unbound:
+            _LOGGER.debug(f"ws_close_and_prepare_to_terminate(): skipping (since ws is unbound) {type(is_unbound).__name__} - {is_unbound}")
+        except BaseException as e:
+            _LOGGER.error(f"ws_close_and_prepare_to_terminate(): Error: {type(e).__name__} - {e}")
+
+    def ws_check_last_update(self) -> bool:
+        if self._ws_LAST_UPDATE + 50 > time.time():
+            _LOGGER.debug(f"ws_check_last_update(): all good! [last update: {int(time.time()-self._ws_LAST_UPDATE)} sec ago]")
+            return True
+        else:
+            _LOGGER.info(f"ws_check_last_update(): force reconnect...")
+            return False

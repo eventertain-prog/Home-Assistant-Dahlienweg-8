@@ -7,7 +7,7 @@ energy:
 
 modbus: !include modbus.yaml
 script: !include scripts.yaml
-### template: !include template.yaml
+template: !include template.yaml
 sensor: !include sensor.yaml
 automation: !include automations.yaml
 

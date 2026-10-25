@@ -1,0 +1,169 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Integration is already configured",
+      "reconfigure_successful": "Re-configuration was successful"
+    },
+    "error": {
+      "login_failed": "Login failed - please check host and/or password",
+      "cannot_connect": "Failed to connect",
+      "unknown": "Unknown error",
+      "no_data": "Could not read any data from device",
+      "unknown_mode": "Please check the IP/host or the provided Node Number - if you are sure that your information is correct, then the Tibber Pulse is communicating via an not-yet-implemented protocol - please create DEBUG log output and open an issue@github - I need sample data - TIA",
+      "unknown_device": "Please check the IP/host or the provided Node Number - no device id could be detected, please check the URL: `http://admin:[BRIDGE_PASSWORD]@[YOUR_IP]/nodes.json`"
+    },
+    "step": {
+      "user": {
+        "description": "Please specify the local connection information for your Tibber Pulse Bridge.\n\n\nYou must have enabled the 'webserver_force_enable' flag!\n\n\nIf you need help with the configuration have a look at: {repo}",
+        "data": {
+          "name": "Display name",
+          "host": "IP or hostname of the Tibber Pulse Bridge",
+          "password": "Your bridge password",
+          "use_polling": "Use old polling procedure / request data cyclically from Bridge",
+          "scan_interval": "Polling Interval in seconds",
+          "node_num": "Node Number (expert setting)",
+          "ignore_errors": "Do not LOG errors or warnings while parsing data"
+        },
+        "data_description": {
+          "password": "[You find the password on the Tibber Bridge - below the QR-Code]",
+          "use_polling": "Only check this option if the communication via websocket is causing issues for you.",
+          "scan_interval": "Only relevant, when you enabled 'Use old polling procedure'"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "0100010800ff": {
+        "name": "Import total"
+      },
+      "0100010801ff": {
+        "name": "Import tariff 1"
+      },
+      "0100010802ff": {
+        "name": "Import tariff 2"
+      },
+      "0100010803ff": {
+        "name": "Import tariff 3"
+      },
+      "0100010804ff": {
+        "name": "Import tariff 4"
+      },
+
+      "0100020800ff": {
+        "name": "Export total"
+      },
+      "0100020801ff": {
+        "name": "Export tariff 1"
+      },
+      "0100020802ff": {
+        "name": "Export tariff 2"
+      },
+      "0100020803ff": {
+        "name": "Export tariff 3"
+      },
+      "0100020804ff": {
+        "name": "Export tariff 4"
+      },
+
+      "0100010800ff_in_k": {
+        "name": "Import total (kWh)"
+      },
+      "0100010801ff_in_k": {
+        "name": "Import tariff 1 (kWh)"
+      },
+      "0100010802ff_in_k": {
+        "name": "Import tariff 2 (kWh)"
+      },
+      "0100010803ff_in_k": {
+        "name": "Import tariff 3 (kWh)"
+      },
+      "0100010804ff_in_k": {
+        "name": "Import tariff 4 (kWh)"
+      },
+
+      "0100020800ff_in_k": {
+        "name": "Export total (kWh)"
+      },
+      "0100020801ff_in_k": {
+        "name": "Export tariff 1 (kWh)"
+      },
+      "0100020802ff_in_k": {
+        "name": "Export tariff 2 (kWh)"
+      },
+      "0100020803ff_in_k": {
+        "name": "Export tariff 3 (kWh)"
+      },
+      "0100020804ff_in_k": {
+        "name": "Export tariff 4 (kWh)"
+      },
+
+      "0100100700ff": {
+        "name": "Power (actual)"
+      },
+      "0100240700ff": {
+        "name": "Power L1"
+      },
+      "0100380700ff": {
+        "name": "Power L2"
+      },
+      "01004c0700ff": {
+        "name": "Power L3"
+      },
+      "0100200700ff": {
+        "name": "Potential L1"
+      },
+      "0100340700ff": {
+        "name": "Potential L2"
+      },
+      "0100480700ff": {
+        "name": "Potential L3"
+      },
+      "01001f0700ff": {
+        "name": "Current L1"
+      },
+      "0100330700ff": {
+        "name": "Current L2"
+      },
+      "0100470700ff": {
+        "name": "Current L3"
+      },
+      "01000e0700ff": {
+        "name": "Net frequency"
+      },
+      "0100510701ff": {
+        "name": "Potential Phase deviation L1/L2"
+      },
+      "0100510702ff": {
+        "name": "Potential Phase deviation L1/L3"
+      },
+      "0100510704ff": {
+        "name": "Current/Potential L1 Phase deviation"
+      },
+      "010051070fff": {
+        "name": "Current/Potential L2 Phase deviation"
+      },
+      "010051071aff": {
+        "name": "Current/Potential L3 Phase deviation"
+      },
+
+      "node_battery_voltage": {"name":  "Node Battery"},
+      "node_temperature": {"name":  "Node Temperature"},
+      "node_avg_rssi": {"name":  "Node Ø RSSI"},
+      "node_avg_lqi": {"name":  "Node Ø signal quality"},
+      "node_radio_tx_power": {"name":  "Node tx power"},
+      "node_uptime_ms": {"name":  "Node Uptime"},
+      "node_meter_msg_count_sent": {"name":  "Counter: Node messages sent"},
+      "node_meter_pkg_count_sent": {"name":  "Counter: Node packages sent"},
+      "node_time_in_em0_ms": {"name":  "Node EM0 Time"},
+      "node_time_in_em1_ms": {"name":  "Node EM1 Time"},
+      "node_time_in_em2_ms": {"name":  "Node EM2 Time"},
+      "node_acmp_rx_autolevel_9600": {"name":  "Node ACMP rx (9600 Baud)"},
+      "node_invalid_meter_readings_count": {"name":  "Counter: Node invalid readings"},
+      "hub_meter_pkg_count_recv": {"name":  "Counter: Hub packages received"},
+      "hub_meter_reading_count_recv": {"name":  "Counter: Hub messages received"},
+      "hub_meter_corrupt_reading_count_recv": {"name":  "Counter: Hub corrupted readings received"},
+      "hub_compression_error_readings_count": {"name":  "Counter: Hub compression errors"}
+    }
+  }
+}

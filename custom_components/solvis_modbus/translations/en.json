@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "ip_address": "IP-Address",
+          "name": "Name"
+        }
+      },
+      "heater_type": {
+        "data": {
+          "type": "Heater Types"
+        }
+      }
+    }
+  },
+  "options": {
+    "init": {
+      "data": {
+        "type": "Heater Types"
+      }
+    }
+  },
+  "selector": {
+    "heater_type": {
+      "options": {
+        "GAS_BOILER": "Gas Boiler",
+        "HEAT_PUMP": "Heat Pump"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gas_power": {
+        "name": "Gas burner power"
+      },
+      "outdoor_air_temp": {
+        "name": "Outdoor temperature"
+      },
+      "roof_air_temp": {
+        "name": "Outdoor temperature roof"
+      },
+      "cold_water_temp": {
+        "name": "Cold water temperature"
+      },
+      "flow_water_temp": {
+        "name": "Flow water temperature"
+      },
+      "domestic_water_temp": {
+        "name": "Domestic water temperature"
+      },
+      "solar_water_temp": {
+        "name": "Solar temperature"
+      },
+      "solar_heat_exchanger_in_water_temp": {
+        "name": "Solar temperature heat exchanger input"
+      },
+      "solar_heat_exchanger_out_water_temp": {
+        "name": "Solar temperature heat exchanger output"
+      },
+      "tank_layer1_water_temp": {
+        "name": "Tank layer 1 water temperature"
+      },
+      "tank_layer2_water_temp": {
+        "name": "Tank layer 1 water temperature"
+      },
+      "tank_layer3_water_temp": {
+        "name": "Tank layer 1 water temperature"
+      },
+      "tank_layer4_water_temp": {
+        "name": "Tank layer 1 water temperature"
+      },
+      "solar_water_flow": {
+        "name": "Solar flow"
+      },
+      "domestic_water_flow": {
+        "name": "Domestic water flow"
+      },
+      "heat_pump_thermal_power": {
+        "name": "Heat pump thermal power"
+      },
+      "heat_pump_electric_power": {
+        "name": "Heat pump electric power"
+      }
+    }
+  }
+}
